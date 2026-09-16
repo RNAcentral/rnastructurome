@@ -578,6 +578,17 @@ def rnacentralQcGate(String checkName, boolean pass, String message) {
     }
 }
 
+// Advisory counterpart to rnacentralQcGate: records the failure in the same report file and logs a
+// warning, but never aborts. For checks whose metric is known to be unreliable as a hard gate.
+def rnacentralQcWarn(String checkName, boolean pass, String message) {
+    if (params.rnacentral && !pass) {
+        def report = file("${params.outdir}/pipeline_info/rnacentral_qc_report.txt")
+        report.parent.mkdirs()
+        report << "[${new Date().format('yyyy-MM-dd HH:mm:ss')}] WARNING — ${checkName}: ${message}\n"
+        log.warn("[--rnacentral QC warning] ${checkName}: ${message}")
+    }
+}
+
 def parseInferExperiment(txtFile) {
     def forward = 0.0
     def reverse = 0.0
