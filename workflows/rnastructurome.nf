@@ -4,6 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include { MULTIQC             } from '../modules/nf-core/multiqc/main'
+include { SAMTOOLS_COVERAGE   } from '../modules/nf-core/samtools/coverage/main'
 include { RNAFRAMEWORK_TORDAT } from '../modules/local/tordat/main'
 
 include { paramsSummaryMap       } from 'plugin/nf-schema'
@@ -25,6 +26,8 @@ include {
     resolveReferenceKey
     parseFlagstatMappedReads
     parseFlagstatMappedPct
+    parseCoverageMinMeanDepth
+    isSmallReference
     parseRfcountCoveredTranscripts
     parseRfcountSummaryRow
     parseFastqcSummary
@@ -210,13 +213,28 @@ workflow RNASTRUCTUROME {
     def ch_post_dedup_mapped_reads = ALIGN_READS.out.flagstat_post
         .map { meta, flagstat -> [ meta.id.toString(), parseFlagstatMappedReads(flagstat) ] }
 
-    // --rnacentral check 2: mapped read %, post-dedup.
-    ALIGN_READS.out.flagstat_post.map { meta, flagstat ->
-        if (params.rnacentral) {
-            def pct = parseFlagstatMappedPct(flagstat)
-            rnacentralQcGate('Mapped reads', pct >= params.rnacentral_min_mapped_pct, "${meta.id} at ${pct}% (< ${params.rnacentral_min_mapped_pct}%)")
+    // --rnacentral check 2: alignment yield, post-dedup. Small (viral) references are gated on read depth
+    // instead of mapped %: virion preps carry host RNA, so mapped % reflects the prep, not the alignment.
+    if (params.rnacentral) {
+        ALIGN_READS.out.flagstat_post
+            .combine(ch_reference_fasta_map)
+            .filter { meta, _flagstat, ref_map -> !isSmallReference(meta, ref_map) }
+            .map { meta, flagstat, _ref_map ->
+                def pct = parseFlagstatMappedPct(flagstat)
+                rnacentralQcGate('Mapped reads', pct >= params.rnacentral_min_mapped_pct, "${meta.id} at ${pct}% (< ${params.rnacentral_min_mapped_pct}%)")
+            }
+
+        SAMTOOLS_COVERAGE (
+            ch_markdup_bam_bai
+                .combine(ch_reference_fasta_map)
+                .filter { meta, _bam, _bai, ref_map -> isSmallReference(meta, ref_map) }
+                .map { meta, bam, bai, _ref_map -> [ meta, bam, bai ] },
+            channel.value([ [], [], [] ])
+        )
+        SAMTOOLS_COVERAGE.out.coverage.map { meta, coverage ->
+            def (contig, depth) = parseCoverageMinMeanDepth(coverage)
+            rnacentralQcGate('Mean read depth', depth >= params.rnacentral_min_mean_depth, "${meta.id} at ${depth}x on ${contig} (< ${params.rnacentral_min_mean_depth}x)")
         }
-        [ meta, flagstat ]
     }
 
     def ch_rfcount_covered_transcripts = ch_rfcount_summary

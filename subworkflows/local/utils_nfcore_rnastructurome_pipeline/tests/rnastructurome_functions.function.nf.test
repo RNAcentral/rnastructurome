@@ -157,6 +157,68 @@ nextflow_function {
         then { assert function.success; assert function.result == 85.00 }
     }
 
+    test("isSmallReference is true for a viral-sized FASTA") {
+        function "isSmallReference"
+        when {
+            function {
+                """
+                def small = File.createTempFile('viral', '.fa'); small.text = '>NC_001477.1\\n' + ('ACGT' * 2500) + '\\n'
+                def large = File.createTempFile('bacterial', '.fa'); large.text = '>chr\\n' + ('ACGT' * 300000) + '\\n'
+                input[0] = [ id: 's1', organism: 'Dengue virus (EDEN3295)' ]
+                input[1] = [ dengue_virus_eden3295: [ [:], small ], escherichia_coli: [ [:], large ] ]
+                """
+            }
+        }
+        then { assert function.success; assert function.result == true }
+    }
+
+    test("isSmallReference is false for a reference FASTA over 1 MB") {
+        function "isSmallReference"
+        when {
+            function {
+                """
+                def large = File.createTempFile('bacterial', '.fa'); large.text = '>chr\\n' + ('ACGT' * 300000) + '\\n'
+                input[0] = [ id: 's1', organism: 'Escherichia coli' ]
+                input[1] = [ escherichia_coli: [ [:], large ] ]
+                """
+            }
+        }
+        then { assert function.success; assert function.result == false }
+    }
+
+    test("parseCoverageMinMeanDepth returns the least-covered contig of a segmented genome") {
+        function "parseCoverageMinMeanDepth"
+        when {
+            function {
+                """
+                def coverage = File.createTempFile('coverage', '.txt')
+                coverage.text = [
+                    ['#rname', 'startpos', 'endpos', 'numreads', 'covbases', 'coverage', 'meandepth', 'meanbaseq', 'meanmapq'],
+                    ['NC_002023.1', '1', '2341', '900000', '2341', '100', '28839.5', '35.1', '42'],
+                    ['NC_002020.1', '1', '890', '1200', '880', '98.9', '101.1', '34.8', '42'],
+                    ['NC_002016.1', '1', '1027', '400', '700', '68.2', '29.2', '35.0', '42'],
+                ].collect { row -> row.join('\\t') }.join('\\n') + '\\n'
+                input[0] = coverage
+                """
+            }
+        }
+        then { assert function.success; assert function.result == [ 'NC_002016.1', 29.2 ] }
+    }
+
+    test("parseCoverageMinMeanDepth fails on a header-only file") {
+        function "parseCoverageMinMeanDepth"
+        when {
+            function {
+                """
+                def coverage = File.createTempFile('coverage', '.txt')
+                coverage.text = ['#rname', 'startpos', 'endpos', 'numreads', 'covbases', 'coverage', 'meandepth', 'meanbaseq', 'meanmapq'].join('\\t') + '\\n'
+                input[0] = coverage
+                """
+            }
+        }
+        then { assert function.failed }
+    }
+
     test("parseRfcountSummaryRow parses a MaP-mode row") {
         function "parseRfcountSummaryRow"
         when {

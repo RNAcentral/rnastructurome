@@ -837,6 +837,12 @@
                     "description": "Minimum % mapped reads (samtools flagstat) per sample required by the --rnacentral QC gate.",
                     "default": 60.0
                 },
+                "rnacentral_min_mean_depth": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Minimum per-contig mean read depth (samtools coverage) per sample required by the --rnacentral QC gate for small references (FASTA under 1 MB, i.e. viral genomes), which are gated on depth instead of mapped %.",
+                    "default": 100
+                },
                 "rnacentral_min_correlation": {
                     "type": "number",
                     "minimum": 0,

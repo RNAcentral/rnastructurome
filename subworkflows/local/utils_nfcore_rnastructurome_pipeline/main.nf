@@ -497,6 +497,22 @@ def parseFlagstatMappedReads(flagstatFile) {
     (mappedLine.tokenize()[0]) as long
 }
 
+// A reference FASTA under 1 MB is a viral genome (or a hand-picked transcript set): the --rnacentral
+// gate judges those on read depth rather than mapped %, which for virion preps reflects the host RNA carried over.
+def isSmallReference(meta, refMap) {
+    refMap[resolveReferenceKey(meta)][1].size() < 1_000_000
+}
+
+// samtools coverage TSV: min meandepth over contigs, so every segment of a segmented genome must clear the gate.
+def parseCoverageMinMeanDepth(coverageFile) {
+    def rows = coverageFile.readLines().findAll { line -> line && !line.startsWith('#') }.collect { line -> line.split('\t') }
+    if (!rows) {
+        error("Could not parse any contig from samtools coverage file: ${coverageFile}")
+    }
+    def lowest = rows.min { row -> row[6] as double }
+    [ lowest[0], lowest[6] as double ]
+}
+
 def parseFlagstatMappedPct(flagstatFile) {
     def mappedLine = flagstatFile.readLines().find { line ->
         line ==~ /^\d+\s+\+\s+\d+\s+mapped\s+\(.*/
