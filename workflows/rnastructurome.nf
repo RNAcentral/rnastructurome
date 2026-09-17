@@ -55,8 +55,9 @@ workflow RNASTRUCTUROME {
     main:
 
     // --rnacentral FastQC gate: modules that stay PASS on real, otherwise-healthy chemical-probing
-    // reads (confirmed against real MultiQC data across 6 organisms). Adapter Content is checked on
-    // the first mate only — R2 reliably fails post-trim even on clean data (paired-end artifact).
+    // reads (confirmed against real MultiQC data across 6 organisms). Adapter Content and Per base
+    // sequence quality are checked on the first mate only: R2 reliably fails both post-trim even on
+    // clean data (adapter read-through; scattered low-Q tail bases that cutadapt's run-sum keeps).
     def RNACENTRAL_FASTQC_ALLOWLIST = [
         'Basic Statistics', 'Per base sequence quality', 'Per tile sequence quality',
         'Per sequence quality scores', 'Per base N content', 'Adapter Content'
@@ -70,13 +71,13 @@ workflow RNASTRUCTUROME {
     ch_multiqc_files = ch_multiqc_files.mix(FASTQ_QC_TRIM.out.multiqc_files)
 
     // --rnacentral check 1: post-trim FastQC. First mate gets the full allowlist; a second mate
-    // (paired-end) skips Adapter Content — see RNACENTRAL_FASTQC_ALLOWLIST above. Parsing only runs
+    // (paired-end) skips the R2-artefact modules — see RNACENTRAL_FASTQC_ALLOWLIST above. Parsing only runs
     // when the gate is enabled: -stub's FASTQC output is an empty placeholder file, not a real zip.
     def ch_fastqc_post_gate = FASTQ_QC_TRIM.out.fastqc_post_zip.map { meta, zips ->
         if (params.rnacentral) {
             def zipList = (zips instanceof List) ? zips.sort { zip -> zip.name } : [zips]
             def fails = zipList.withIndex().collect { zip, idx ->
-                def allowlist = (idx == 0) ? RNACENTRAL_FASTQC_ALLOWLIST : (RNACENTRAL_FASTQC_ALLOWLIST - 'Adapter Content')
+                def allowlist = (idx == 0) ? RNACENTRAL_FASTQC_ALLOWLIST : (RNACENTRAL_FASTQC_ALLOWLIST - ['Adapter Content', 'Per base sequence quality'])
                 parseFastqcSummary(zip, allowlist)
             }.flatten()
             rnacentralQcGate('FastQC', fails.isEmpty(), "${meta.id}: ${fails.unique()}")
