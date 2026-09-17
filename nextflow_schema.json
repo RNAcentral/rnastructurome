@@ -842,7 +842,7 @@
                     "minimum": 0,
                     "maximum": 1,
                     "description": "Minimum pairwise replicate reactivity correlation (rf-correlate) per sample_group required by the --rnacentral QC gate.",
-                    "default": 0.6
+                    "default": 0.5
                 },
                 "rnacentral_max_untreated_base_spread": {
                     "type": "number",
