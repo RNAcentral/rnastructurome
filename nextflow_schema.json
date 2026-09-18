@@ -853,7 +853,7 @@
                 "rnacentral_max_untreated_base_spread": {
                     "type": "number",
                     "minimum": 0,
-                    "description": "Maximum allowed spread (percentage points) between the highest and lowest of pct_a/c/g/u_muts on the untreated sample's rf-count summary, required by the --rnacentral QC gate.",
+                    "description": "Maximum allowed spread (percentage points) between the highest and lowest of pct_a/c/g/u_muts on the untreated sample's rf-count summary. Advisory only under --rnacentral: exceeding it logs a warning, not a failure.",
                     "default": 15.0
                 },
                 "rnacentral_min_treated_mutation_rate": {

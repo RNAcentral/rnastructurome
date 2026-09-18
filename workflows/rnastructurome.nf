@@ -190,7 +190,9 @@ workflow RNASTRUCTUROME {
                 }
                 def spread = [untreated.pct_a, untreated.pct_c, untreated.pct_g, untreated.pct_u].max() -
                              [untreated.pct_a, untreated.pct_c, untreated.pct_g, untreated.pct_u].min()
-                rnacentralQcGate('Untreated background uniformity', spread <= params.rnacentral_max_untreated_base_spread,
+                // Warn-only: the per-base share is not corrected for reference composition, so an
+                // A-rich genome (dengue: A 33%, C 21%) exceeds the spread with a uniform error rate.
+                rnacentralQcWarn('Untreated background uniformity', spread <= params.rnacentral_max_untreated_base_spread,
                     "${group} base spread ${spread} (> ${params.rnacentral_max_untreated_base_spread})")
                 // Warn-only: pct_mutated is the share of alignments carrying >=1 mutation, which
                 // saturates (~99% for treated AND untreated) on transcriptome-wide runs with long
