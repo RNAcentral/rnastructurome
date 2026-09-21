@@ -358,4 +358,81 @@ nextflow_function {
             assert !new File("${outputDir}/pipeline_info/rnacentral_qc_report.txt").exists()
         }
     }
+
+    test("sharedGroupPrefixLength counts leading tokens in common") {
+        function "sharedGroupPrefixLength"
+        when { function { """ input[0] = 'HFF_infected_HCMV_05hpi'; input[1] = 'HFF_infected_HCMV_72hpi' """ } }
+        then { assert function.success; assert function.result == 3 }
+    }
+
+    test("sharedGroupPrefixLength separates the arms of an infection timecourse") {
+        function "sharedGroupPrefixLength"
+        when { function { """ input[0] = 'HFF_infected_HCMV_05hpi'; input[1] = 'HFF_uninfected' """ } }
+        then { assert function.success; assert function.result == 1 }
+    }
+
+    test("sharedGroupPrefixLength keeps the cell-line fallback working") {
+        function "sharedGroupPrefixLength"
+        when { function { """ input[0] = 'MDA-MB-231_MTX'; input[1] = 'MDA-MB-231_DMSO' """ } }
+        then { assert function.success; assert function.result == 1 }
+    }
+
+    test("sharedGroupPrefixLength returns the whole list when one group is a prefix of the other") {
+        function "sharedGroupPrefixLength"
+        when { function { """ input[0] = 'HEK293T'; input[1] = 'HEK293T_MTX' """ } }
+        then { assert function.success; assert function.result == 1 }
+    }
+
+    test("sharedGroupPrefixLength is zero for unrelated groups") {
+        function "sharedGroupPrefixLength"
+        when { function { """ input[0] = 'K562_invitro'; input[1] = 'HEK293T' """ } }
+        then { assert function.success; assert function.result == 0 }
+    }
+
+    test("sharedGroupPrefixLength does not match on a partial token") {
+        function "sharedGroupPrefixLength"
+        when { function { """ input[0] = 'HFF_infected'; input[1] = 'HFFX_infected' """ } }
+        then { assert function.success; assert function.result == 0 }
+    }
+    test("selectClosestControl prefers the candidate sharing the most of the group name") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'untreated'; input[1] = 'HFF_HCMV_05hpi_1'; input[2] = [ [ prefix: 1, same_replicate: true, control_group: 'HFF_uninfected_1', rc: 'HFF_uninfected_1.rc' ], [ prefix: 2, same_replicate: true, control_group: 'HFF_HCMV_72hpi_1', rc: 'HFF_HCMV_72hpi_1.rc' ] ] """ } }
+        then { assert function.success; assert function.result == [ 'HFF_HCMV_05hpi_1', 'HFF_HCMV_72hpi_1.rc' ] }
+    }
+
+    test("selectClosestControl prefers the same replicate among equally close candidates") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'untreated'; input[1] = 'A_x_2'; input[2] = [ [ prefix: 1, same_replicate: false, control_group: 'A_y_1', rc: 'A_y_1.rc' ], [ prefix: 1, same_replicate: true, control_group: 'A_z_2', rc: 'A_z_2.rc' ] ] """ } }
+        then { assert function.success; assert function.result == [ 'A_x_2', 'A_z_2.rc' ] }
+    }
+
+    test("selectClosestControl reuses a lone control across replicates") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'untreated'; input[1] = 'HFF_uninfected_2'; input[2] = [ [ prefix: 2, same_replicate: false, control_group: 'HFF_uninfected_1', rc: 'HFF_uninfected_1.rc' ], [ prefix: 1, same_replicate: false, control_group: 'HFF_HCMV_72hpi_1', rc: 'HFF_HCMV_72hpi_1.rc' ] ] """ } }
+        then { assert function.success; assert function.result == [ 'HFF_uninfected_2', 'HFF_uninfected_1.rc' ] }
+    }
+
+    test("selectClosestControl errors on a tie at the same replicate for untreated") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'untreated'; input[1] = 'A_z_1'; input[2] = [ [ prefix: 1, same_replicate: true, control_group: 'A_x_1', rc: 'A_x_1.rc' ], [ prefix: 1, same_replicate: true, control_group: 'A_y_1', rc: 'A_y_1.rc' ] ] """ } }
+        then { assert function.failed }
+    }
+
+    test("selectClosestControl errors on a tie at the same replicate for denatured too") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'denatured'; input[1] = 'A_z_1'; input[2] = [ [ prefix: 1, same_replicate: true, control_group: 'A_x_1', rc: 'A_x_1.rc' ], [ prefix: 1, same_replicate: true, control_group: 'A_y_1', rc: 'A_y_1.rc' ] ] """ } }
+        then { assert function.failed }
+    }
+
+    test("selectClosestControl returns nothing when two arms are equally distant") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'untreated'; input[1] = 'A_z_3'; input[2] = [ [ prefix: 1, same_replicate: false, control_group: 'A_x_1', rc: 'A_x_1.rc' ], [ prefix: 1, same_replicate: false, control_group: 'A_y_2', rc: 'A_y_2.rc' ] ] """ } }
+        then { assert function.success; assert function.result == [ 'A_z_3', null ] }
+    }
+
+    test("selectClosestControl treats several runs of one control group as a single control") {
+        function "selectClosestControl"
+        when { function { """ input[0] = 'untreated'; input[1] = 'RVA_RF_20uM_NSP2_in_vitro_1'; input[2] = [ [ prefix: 2, same_replicate: true, control_group: 'RVA_RF_no_NSP2_in_vitro_1', rc: 'pool_S5_S6.rc' ], [ prefix: 2, same_replicate: true, control_group: 'RVA_RF_no_NSP2_in_vitro_1', rc: 'pool_S10_S11.rc' ], [ prefix: 2, same_replicate: true, control_group: 'RVA_RF_no_NSP2_in_vitro_1', rc: 'pool_total.rc' ] ] """ } }
+        then { assert function.success; assert function.result[0] == 'RVA_RF_20uM_NSP2_in_vitro_1'; assert function.result[1] != null }
+    }
 }
