@@ -4,7 +4,8 @@
 include { RNAFRAMEWORK_RFNORM         } from '../../../modules/local/rnaframework/norm/main'
 include { RNAFRAMEWORK_RFNORMFACTOR   } from '../../../modules/local/rnaframework/normfactor/main'
 include {
-    sampleGroupBaseToken
+    sharedGroupPrefixLength
+    selectClosestControl
     resolveRfNormScoreMethod
     resolveRfNormNormMethod
     resolveReferenceKey
@@ -81,59 +82,93 @@ workflow NORMALISE_REACTIVITIES {
             [ group, entries.find { entry -> entry.condition == 'treated' }.meta ]
         }
 
-    // Fuzzy untreated pairing fallback (default on; disable with --fuzzy_untreated_pairing false). When a
-    // treated group has no exact untreated match, fall back to one sharing the same sample_group base token
-    // (e.g. "MDA-MB-231" from "MDA-MB-231_MTX") at the same replicate — erroring if ambiguous.
+    // Fuzzy control pairing fallback (default on; disable with --fuzzy_untreated_pairing false). A treated
+    // group with no exact control falls back to the one sharing the longest sample_group token prefix —
+    // "HFF_infected_HCMV_05hpi" prefers "HFF_infected_HCMV_72hpi" (3 tokens) over "HFF_uninfected" (1) —
+    // preferring the same replicate. Applies to untreated and denatured alike.
     def ch_resolved_untreated
+    def ch_resolved_denatured
     if (params.fuzzy_untreated_pairing as Boolean) {
-        // Each untreated sample keyed as [base_token, replicate, group, rc] for cross-matching.
-        def ch_untreated_for_lookup = ch_rc_by_group
+        // Controls of each kind, keyed as [sample_group, replicate, group, rc] for cross-matching.
+        def ch_untreated_lookup = ch_rc_by_group
             .filter  { _group, condition, _meta, _rc, _rci -> condition == 'untreated' }
             .map     { group, _condition, meta, rc, _rci ->
-                [ sampleGroupBaseToken(meta.sample_group.toString()), meta.replicate.toString(), group, rc ]
+                [ meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
             }
 
-        // Treated groups with no direct untreated match — candidates for fuzzy lookup.
+        def ch_denatured_lookup = ch_rc_by_group
+            .filter  { _group, condition, _meta, _rc, _rci -> condition == 'denatured' }
+            .map     { group, _condition, meta, rc, _rci ->
+                [ meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
+            }
+
+        // Treated groups with no untreated of their own — candidates for fuzzy lookup.
         def ch_treated_no_untreated = ch_treated
             .join(ch_group_meta)
             .join(ch_untreated, remainder: true)
             .filter { _group, _treated_rcs, _base_meta, untreated_rc -> !untreated_rc }
             .map    { group, _treated_rcs, base_meta, _untreated_rc ->
-                [ sampleGroupBaseToken(base_meta.sample_group.toString()), base_meta.replicate.toString(), group ]
+                [ base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
             }
 
-        // Cross-product treated-without-untreated × available untreated, filtered on base+rep match,
-        // then grouped by treated group to validate uniqueness before selecting the fallback.
+        // Cross-product treated-without-control × available controls, keeping pairs that share at least
+        // the first token, then grouped by treated group to rank and pick one.
         def ch_fallback_untreated = ch_treated_no_untreated
-            .combine(ch_untreated_for_lookup)
-            .filter { treated_base, treated_rep, _group, unt_base, unt_rep, _unt_group, _unt_rc ->
-                treated_base == unt_base && treated_rep == unt_rep
+            .combine(ch_untreated_lookup)
+            .map { treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
+                [ group, [
+                    prefix         : sharedGroupPrefixLength(treated_sg, ctl_sg),
+                    same_replicate : treated_rep == ctl_rep,
+                    control_group  : ctl_group,
+                    rc             : ctl_rc
+                ] ]
             }
-            .map { _treated_base, _treated_rep, group, _unt_base, _unt_rep, unt_group, unt_rc ->
-                [ group, [ untreated_group: unt_group, rc: unt_rc ] ]
-            }
+            .filter { _group, candidate -> candidate.prefix > 0 }
             .groupTuple()
-            .map { group, candidates ->
-                if (candidates.size() > 1) {
-                    def candidateGroups = candidates.collect { c -> c.untreated_group }.sort().join(', ')
-                    error("Ambiguous untreated fallback for '${group}': multiple untreated groups share the same sample_group base and replicate: ${candidateGroups}. Use --fuzzy_untreated_pairing false to disable fuzzy matching.")
-                }
-                log.warn "No exact untreated match for '${group}' — falling back to '${candidates[0].untreated_group}' (shared sample_group base token at same replicate). Set --fuzzy_untreated_pairing false to require exact matches."
-                [ group, candidates[0].rc ]
+            .map { group, candidates -> selectClosestControl('untreated', group, candidates) }
+            .filter { _group, rc -> rc }
+
+        ch_resolved_untreated = ch_untreated.mix(ch_fallback_untreated)
+
+        // Same treatment for denatured, except it is only offered to groups that already have an
+        // untreated: rf-norm rejects a denatured control without one, so inheriting a denatured must not
+        // create that state.
+        def ch_treated_no_denatured = ch_treated
+            .join(ch_group_meta)
+            .join(ch_denatured, remainder: true)
+            .filter { _group, _treated_rcs, _base_meta, denatured_rc -> !denatured_rc }
+            .join(ch_resolved_untreated)
+            .map    { group, _treated_rcs, base_meta, _denatured_rc, _untreated_rc ->
+                [ base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
             }
 
-        // Resolved untreated: direct exact match OR fuzzy fallback.
-        ch_resolved_untreated = ch_untreated.mix(ch_fallback_untreated)
+        def ch_fallback_denatured = ch_treated_no_denatured
+            .combine(ch_denatured_lookup)
+            .map { treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
+                [ group, [
+                    prefix         : sharedGroupPrefixLength(treated_sg, ctl_sg),
+                    same_replicate : treated_rep == ctl_rep,
+                    control_group  : ctl_group,
+                    rc             : ctl_rc
+                ] ]
+            }
+            .filter { _group, candidate -> candidate.prefix > 0 }
+            .groupTuple()
+            .map { group, candidates -> selectClosestControl('denatured', group, candidates) }
+            .filter { _group, rc -> rc }
+
+        ch_resolved_denatured = ch_denatured.mix(ch_fallback_denatured)
     } else {
         // Strict mode: only exact sample_group+replicate matches are used.
         // Groups with no exact untreated match proceed without a negative control.
         ch_resolved_untreated = ch_untreated
+        ch_resolved_denatured = ch_denatured
     }
 
     def ch_norm_input = ch_treated
         .join(ch_group_meta)
         .join(ch_resolved_untreated, remainder: true)
-        .join(ch_denatured, remainder: true)
+        .join(ch_resolved_denatured, remainder: true)
         .join(ch_group_rci, remainder: true)
         .map { group, treated_rcs, base_meta, untreated_rc, denatured_rc, rci_files ->
             def hasUntreated  = untreated_rc ? true : false
@@ -154,48 +189,6 @@ workflow NORMALISE_REACTIVITIES {
             ]
             [ gmeta, treated_rcs, untreated_rc ?: [], denatured_rc ?: [], rci_files ?: [] ]
         }
-
-    // Reference-wide fallback: if a reference has exactly one untreated control, reuse it for every
-    // treated group with none of its own (e.g. one shared control, several treated replicates).
-    // Ambiguous cases (2+ distinct controls) fall through to the all-or-none check below.
-    if (params.fuzzy_untreated_pairing as Boolean) {
-        ch_norm_input = ch_norm_input
-            .map { gmeta, treated_rcs, untreated_rc, denatured_rc, rci_files ->
-                def ref = resolveReferenceKey(gmeta)
-                [ ref, [ meta: gmeta, treated: treated_rcs, untreated: untreated_rc, denatured: denatured_rc, rci: rci_files ] ]
-            }
-            .groupTuple()
-            .flatMap { ref, entries ->
-                // untreated may arrive as a bare Path or a single-element List (glob-typed process
-                // output) — normalise to a bare Path (or null) before comparing/reusing.
-                def untreatedFiles = entries.collect { entry ->
-                    def u = entry.untreated
-                    (u instanceof List ? (u ? u[0] : null) : u) ?: null
-                }
-                def distinct       = untreatedFiles.findAll { u -> u }.unique { u -> u.name }
-                def missingIdx     = (0..<entries.size()).findAll { i -> !untreatedFiles[i] }
-                if (distinct.size() == 1 && missingIdx) {
-                    def missingIds = missingIdx.collect { i -> entries[i].meta.id }.sort()
-                    log.warn "rf-norm reference '${ref}': only one untreated control ('${distinct[0].name}') is available — reusing it for treated group(s) with no untreated of their own: ${missingIds.join(', ')}. Set --fuzzy_untreated_pairing false to disable this fallback."
-                }
-                entries.withIndex().collect { entry, i ->
-                    def gmeta        = entry.meta
-                    def untreated_rc = untreatedFiles[i]
-                    if (!untreated_rc && distinct.size() == 1) {
-                        untreated_rc      = distinct[0]
-                        def principle     = (gmeta.principle ?: '').toLowerCase()
-                        def scoringMethod = resolveRfNormScoreMethod(principle, true)
-                        def normMethod    = resolveRfNormNormMethod(scoringMethod)
-                        gmeta = gmeta + [
-                            rfnorm_has_untreated  : true,
-                            rfnorm_scoring_method : scoringMethod,
-                            rfnorm_norm_method    : normMethod
-                        ]
-                    }
-                    [ gmeta, entry.treated, untreated_rc ?: [], entry.denatured, entry.rci ]
-                }
-            }
-    }
 
     // Cross-experiment normalisation via rf-normfactor: derives one set of transcriptome-wide factors per
     // reference, fed to every group's rf-norm via -nf for a common scale (vs. per-sample box-plot).
