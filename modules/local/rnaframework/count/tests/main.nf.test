@@ -46,4 +46,36 @@ nextflow_process {
             )
         }
     }
+
+    // The nf-core sarscov2 BAM carries no MD tags and keeps unmapped mates, both of which send
+    // rf-count -m down its calmd path, where it never re-indexes the BAM and dies on the split.
+    test("rfcount - map mode on a BAM without MD tags") {
+
+        when {
+            params {
+                module_args = '-m --sort-by-read-name --properly-paired'
+            }
+            process {
+                """
+                input[0] = Channel.of([
+                    [ id:'test', principle:'MaP', single_end:false ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam.bai', checkIfExists: true)
+                ])
+                input[1] = Channel.of([
+                    [ id:'ref' ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                ])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.rc.size() == 1 },
+                { assert path(process.out.log[0][1]).text.contains('[+] All done.') }
+            )
+        }
+    }
 }
