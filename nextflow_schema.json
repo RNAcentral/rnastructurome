@@ -436,6 +436,12 @@
                     "description": "Discard reads with excessive 5' or 3' end clipping in rf-count / rf-count-genome (`--discard-clipped-reads`).",
                     "default": false
                 },
+                "rfcount_max_coverage": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Cap mean coverage over covered references before rf-count by randomly subsampling alignments. Unset means no cap.",
+                    "help_text": "rf-count walks every alignment serially per reference, so a small reference at very high depth (a viral genome at ~10^6x) can take days. When the BAM's mean coverage over references with alignments exceeds this value, alignments are randomly subsampled down to it with `samtools view -s`, which selects by read name so every alignment of a read is kept or dropped together and multimapper structure is preserved. Coverage below the cap is left untouched. Mean is taken across all covered references, so it does not cap an individual high-depth reference inside a large transcriptome."
+                },
                 "rfcount_paired_only": {
                     "type": "boolean",
                     "description": "For paired-end samples, use only reads with both mates mapped (`--paired-only`).",
