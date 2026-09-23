@@ -78,4 +78,37 @@ nextflow_process {
             )
         }
     }
+
+    // Exercises the --rfcount_max_coverage path. This BAM is ~0.9x, under any valid cap, so the
+    // measurement runs and decides not to subsample; rf-count must still complete unchanged.
+    test("rfcount - coverage cap leaves a shallow BAM untouched") {
+
+        when {
+            params {
+                module_args = '-m --sort-by-read-name --properly-paired'
+                rfcount_max_coverage = 1
+            }
+            process {
+                """
+                input[0] = Channel.of([
+                    [ id:'test', principle:'MaP', single_end:false ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam.bai', checkIfExists: true)
+                ])
+                input[1] = Channel.of([
+                    [ id:'ref' ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                ])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.rc.size() == 1 },
+                { assert path(process.out.log[0][1]).text.contains('[+] All done.') }
+            )
+        }
+    }
 }
