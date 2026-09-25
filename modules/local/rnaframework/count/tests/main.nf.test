@@ -79,6 +79,38 @@ nextflow_process {
         }
     }
 
+    // An ambiguity code in the reference reaches the MD tag via calmd, and rf-count's MD parser
+    // loops forever on it. The config's time limit turns that hang into a failure.
+    test("rfcount - map mode on a reference with IUPAC ambiguity codes") {
+
+        when {
+            params {
+                module_args = '-m --sort-by-read-name --properly-paired'
+            }
+            process {
+                """
+                def ref = file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                def iupac = file("\${workDir}/iupac.fasta")
+                iupac.text = ref.text.readLines().collect { it.startsWith('>') ? it : it.replaceFirst('T', 'Y') }.join('\\n') + '\\n'
+                input[0] = Channel.of([
+                    [ id:'test', principle:'MaP', single_end:false ],
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam.bai', checkIfExists: true)
+                ])
+                input[1] = Channel.of([ [ id:'ref' ], iupac ])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.rc.size() == 1 },
+                { assert path(process.out.log[0][1]).text.contains('[+] All done.') }
+            )
+        }
+    }
+
     // Exercises the --rfcount_max_coverage path. This BAM is ~0.9x, under any valid cap, so the
     // measurement runs and decides not to subsample; rf-count must still complete unchanged.
     test("rfcount - coverage cap leaves a shallow BAM untouched") {

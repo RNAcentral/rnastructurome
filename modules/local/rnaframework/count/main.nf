@@ -34,7 +34,10 @@ process RNAFRAMEWORK_RFCOUNT {
     # rf-count 2.9.6 bug: if any of the first 100 records lacks an MD tag (an unmapped mate is
     # enough) it runs calmd itself into a BAM it never re-indexes, and -m then dies on "Unable
     # to extract". Hand it mapped reads with MD tags and that path never runs.
-    samtools view -@ ${task.cpus} -b -F 4 "${bam}" | samtools calmd -@ ${task.cpus} -b - "${fasta}" > mapped.bam
+    # Its MD parser also loops forever on an ambiguity code (e.g. Y) that calmd copies from the
+    # reference, so those are masked to N, which it skips.
+    sed '/^>/!s/[RYKMSWBDHVrykmswbdhv]/N/g' "${fasta}" > ref.fa
+    samtools view -@ ${task.cpus} -b -F 4 "${bam}" | samtools calmd -@ ${task.cpus} -b - ref.fa > mapped.bam
     samtools index -@ ${task.cpus} mapped.bam
 
     # rf-count walks every alignment serially per reference, so a small reference at extreme
@@ -63,7 +66,7 @@ process RNAFRAMEWORK_RFCOUNT {
     # transcriptome (~250k for human) is ~250k invocations per sample and never finishes on
     # shared storage. Restrict it to the references that actually have alignments.
     samtools idxstats mapped.bam | awk '\$3 > 0 { print \$1 }' > covered_refs.txt
-    awk 'NR == FNR { keep[\$1]; next } /^>/ { p = (substr(\$1, 2) in keep) } p' covered_refs.txt "${fasta}" > covered.fa
+    awk 'NR == FNR { keep[\$1]; next } /^>/ { p = (substr(\$1, 2) in keep) } p' covered_refs.txt ref.fa > covered.fa
     FASTA_PATH="covered.fa"
 
     export TERM="\${TERM:-xterm}"
