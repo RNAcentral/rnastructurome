@@ -582,6 +582,13 @@ def parseFastqcSummary(zipFile, List<String> allowlist) {
     fails
 }
 
+// Gates on read 1 only: read 2 of a pair fails several modules on otherwise clean data (adapter
+// read-through, low-Q tails, per-tile flowcell artefacts). Its results still reach MultiQC.
+def fastqcGateFails(zips, List<String> allowlist) {
+    def read1 = (zips instanceof List) ? zips.min { zip -> zip.name } : zips
+    parseFastqcSummary(read1, allowlist)
+}
+
 // Shared --rnacentral QC gate: a no-op unless params.rnacentral is set. On failure, writes the
 // reason to pipeline_info/rnacentral_qc_report.txt (for later reference — separate from this run's
 // own stderr/log) before aborting via error(), consistent with this file's other hard-stop checks.

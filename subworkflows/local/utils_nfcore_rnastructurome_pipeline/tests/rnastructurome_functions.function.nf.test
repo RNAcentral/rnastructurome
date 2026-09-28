@@ -320,6 +320,29 @@ nextflow_function {
         then { assert function.success; assert function.result == [] }
     }
 
+    test("fastqcGateFails ignores read 2 of a pair") {
+        function "fastqcGateFails"
+        when {
+            function {
+                """
+                def zips = [ 's_2_': 'FAIL', 's_1_': 'WARN' ].collect { prefix, status ->
+                    def zipFile = File.createTempFile(prefix, '_fastqc.zip')
+                    new java.util.zip.ZipOutputStream(zipFile.newOutputStream()).with { zos ->
+                        zos.putNextEntry(new java.util.zip.ZipEntry('s_fastqc/summary.txt'))
+                        zos.write((status + "\\tPer tile sequence quality\\ts.fastq.gz\\n").bytes)
+                        zos.closeEntry()
+                        zos.close()
+                    }
+                    file(zipFile.path)
+                }
+                input[0] = zips
+                input[1] = ['Per tile sequence quality']
+                """
+            }
+        }
+        then { assert function.success; assert function.result == [] }
+    }
+
     test("rnacentralQcGate is a no-op when --rnacentral is off") {
         function "rnacentralQcGate"
         when {
