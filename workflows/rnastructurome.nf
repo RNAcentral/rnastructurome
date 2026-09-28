@@ -59,8 +59,10 @@ workflow RNASTRUCTUROME {
 
     // --rnacentral FastQC gate: modules that stay PASS on real, otherwise-healthy chemical-probing
     // reads (confirmed against real MultiQC data across 6 organisms). Read 1 only; see fastqcGateFails.
+    // Per tile quality only warns: it flags flowcell imaging faults, not the library, and has failed
+    // read 1 of otherwise healthy samples.
     def RNACENTRAL_FASTQC_ALLOWLIST = [
-        'Basic Statistics', 'Per base sequence quality', 'Per tile sequence quality',
+        'Basic Statistics', 'Per base sequence quality',
         'Per sequence quality scores', 'Per base N content', 'Adapter Content'
     ]
 
@@ -75,6 +77,8 @@ workflow RNASTRUCTUROME {
     // FASTQC output is an empty placeholder file, not a real zip.
     def ch_fastqc_post_gate = FASTQ_QC_TRIM.out.fastqc_post_zip.map { meta, zips ->
         if (params.rnacentral) {
+            def tileFails = fastqcGateFails(zips, ['Per tile sequence quality'])
+            rnacentralQcWarn('FastQC', tileFails.isEmpty(), "${meta.id}: ${tileFails}")
             def fails = fastqcGateFails(zips, RNACENTRAL_FASTQC_ALLOWLIST)
             rnacentralQcGate('FastQC', fails.isEmpty(), "${meta.id}: ${fails.unique()}")
         }
