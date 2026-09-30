@@ -197,6 +197,10 @@
                     "type": "boolean",
                     "description": "Trim terminal N bases.",
                     "default": true
+                },
+                "cutadapt_nextseq_trim": {
+                    "type": "integer",
+                    "description": "Enable cutadapt `--nextseq-trim` with this 3' quality cutoff, trimming high-quality poly-G tails left by 2-colour (NextSeq/NovaSeq) chemistry. Off by default."
                 }
             }
         },
