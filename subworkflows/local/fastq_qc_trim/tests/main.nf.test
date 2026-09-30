@@ -1,0 +1,39 @@
+nextflow_workflow {
+
+    name "Test Workflow FASTQ_QC_TRIM"
+    script "../main.nf"
+    config "${new File('tests/nextflow.config').absolutePath}"
+    workflow "FASTQ_QC_TRIM"
+    tag "subworkflows"
+    tag "fastq_qc_trim"
+    autoSort false
+
+    test("--cutadapt_nextseq_trim removes high-quality poly-G tails") {
+
+        when {
+            params {
+                outdir                = "$outputDir"
+                cutadapt_nextseq_trim = 20
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'polyg', principle:'MaP', single_end:true ],
+                        [ file("\${projectDir}/tests/data/polyg_tail.fastq.gz", checkIfExists: true) ]
+                    ]
+                )
+                """
+            }
+        }
+
+        then {
+            def seqs = path(workflow.out.map_trimmed[0][1]).linesGzip.collate(4).collect { record -> record[1] }
+            assertAll(
+                { assert workflow.success },
+                { assert seqs.size() == 3 },
+                { assert seqs.every { seq -> seq.length() == 50 && !seq.endsWith('G') } }
+            )
+        }
+    }
+}

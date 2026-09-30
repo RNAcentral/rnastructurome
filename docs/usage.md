@@ -95,6 +95,8 @@ Adapter precedence: per-sample columns (`adapter_5p`, `adapter_3p`) → global f
 
 Set `--cutadapt_quality_only` to skip adapter trimming and perform quality/length filtering only.
 
+On 2-colour runs (NextSeq/NovaSeq), lost signal reads as high-quality G, which quality trimming misses. If post-trim FastQC fails Adapter Content on PolyG, set `--cutadapt_nextseq_trim 20`.
+
 ### Deduplication and UMI handling (optional)
 
 By default the pipeline does **not** deduplicate reads (`--skip_markdup true`). Position-based deduplication is not valid for chemical-probing data without UMIs; reads that start at the same coordinate are independent molecules, not PCR duplicates. Set `--skip_markdup false` to enable SAMtools markdup if you know position-based dedup is appropriate for your library.
