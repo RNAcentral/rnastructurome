@@ -570,7 +570,7 @@
                 "rfnorm_prefilter_min_coverage": {
                     "type": "integer",
                     "minimum": 0,
-                    "description": "Genome route only: after rf-rctools extract, keep transcripts with at least one position at this coverage or higher before rf-norm. Set to 0 to keep the full annotation RC.",
+                    "description": "`--count_genome true` only: after rf-rctools extract, keep transcripts with at least one position at this coverage or higher before rf-norm. Set to 0 to keep the full annotation RC.",
                     "default": 1
                 },
                 "rfnorm_img": {

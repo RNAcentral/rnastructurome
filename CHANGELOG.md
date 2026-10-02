@@ -3,10 +3,25 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.0.1dev - [unreleased]
+## v1.1.0dev - [unreleased]
+
+### `Added`
+
+- `--cutadapt_nextseq_trim` passes Cutadapt `--nextseq-trim` with the given 3′ quality cutoff, stripping the high-quality poly-G tails that 2-colour (NextSeq/NovaSeq) chemistry leaves behind and quality trimming misses.
+- `--cutadapt_discard_untrimmed` drops reads in which no adapter was found, for short-insert libraries (e.g. tRNA, miRNA) where every genuine read runs into the adapter.
+- `--rfcount_max_coverage` caps mean coverage before `rf-count` by subsampling alignments by read name, so a small reference at extreme depth (e.g. a viral genome at ~10<sup>6</sup>×) counts in about an hour rather than days. Off by default; does not apply to `--count_genome true`.
+
+### `Changed`
+
+- Fuzzy control pairing (`--fuzzy_untreated_pairing`) now picks the untreated or denatured control whose `sample_group` shares the longest leading token prefix with the treated group, rather than matching on the first token only, so each arm of a design such as `HFF_uninfected` / `HFF_HCMV_05hpi` / `HFF_HCMV_72hpi` gets its own control instead of aborting as ambiguous. A lone control is reused across an arm's replicates, denatured controls are resolved the same way, and a group holding several runs (amplicon pools, genome segments) is no longer counted as a tie.
+- Fuzzy pairing no longer falls back to the only untreated control anywhere on the reference, which could pair unrelated samples (e.g. a K562 control with HEK293T treated). A treated group sharing no leading token with any control is now left uncontrolled, and `rf-normfactor` reports it.
+- `rf-count` now counts only the references that have alignments, instead of running one `samtools view` per FASTA entry; whole-transcriptome runs (~250k human transcripts) previously never finished. RC files therefore list only covered references. The `codon` profile now gives the genome-route `rf-count` task the same resources as the transcriptome-route one.
 
 ### `Fixed`
 
+- `rf-count` no longer dies with "Unable to extract" when any of the first BAM records lacks an MD tag (an unmapped mate is enough): it now receives a mapped-only, MD-tagged, indexed BAM.
+- `rf-count` no longer hangs at 100% CPU on references containing IUPAC ambiguity codes (e.g. `Y`, `R`); these are masked to `N` before counting, so those positions report no reactivity.
+- R2DT no longer fails on a missing `.command.env` when no sequences are extracted for drawing.
 - `--rfnorm_norm_method 1` (2-8% normalisation) is accepted again; the launch guard and schema rejected it while `docs/usage.md` documented it.
 - The rf-fold flag letters quoted in the `nextflow_schema.json` descriptions of `rffold_unconstrained`, `rffold_vienna_no_lonely_pairs`, `rffold_vienna_constrained`, `rffold_vienna_max_bp_span`, `rffold_fold_constraint_file` and `rffold_dotplot` now match what the pipeline passes (`-i`, `-nlp`, `-hc`, `-md`, `-c`, `-dp`).
 - `rf-normfactor` no longer silently drops RC files whose sample name starts with a digit (e.g. `125ng_r1.rc`): `rf-rctools index` numifies such a bare filename into an argument index, so the file is now passed with a directory prefix.

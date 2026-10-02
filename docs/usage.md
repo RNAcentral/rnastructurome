@@ -21,7 +21,7 @@ HEK293T_untreated_r1,GSM000002,/data/untreated_r1.fastq.gz,,SHAPE,RT-stop,NAI,M-
 An [example samplesheet](../assets/samplesheet.csv) is provided.
 
 However, you can also provide a more minimal version if for example you don't need to specify some of the options, like in the example above you could decide to not provide the columns with information about the adapters or umi pattern if you are happy to use the default options.
-You can also provide a very minimal samplesheet with just the information required about each invidivual sample and pass the uniform values across all samples as parameters. For example:
+You can also provide a very minimal samplesheet with just the information required about each individual sample and pass the uniform values across all samples as parameters. For example:
 
 ```csv title="minimal_samplesheet.csv"
 sample,fastq_1,sample_group,condition,replicate
@@ -97,7 +97,7 @@ Set `--cutadapt_quality_only` to skip adapter trimming and perform quality/lengt
 
 On 2-colour runs (NextSeq/NovaSeq), lost signal reads as high-quality G, which quality trimming misses. If post-trim FastQC fails Adapter Content on PolyG, set `--cutadapt_nextseq_trim 20`.
 
-In short-insert libraries (e.g. tRNA, miRNA) every genuine read runs into the 3' adapter, so a read with no adapter found is read-through junk. Set `--cutadapt_discard_untrimmed` to drop those reads.
+In short-insert libraries (e.g. tRNA, miRNA) every genuine read runs into the 3' adapter, so a read with no adapter found is read-through junk. Set `--cutadapt_discard_untrimmed` to drop those reads. It relies on adapter trimming, so do not combine it with `--cutadapt_quality_only`.
 
 ### Deduplication and UMI handling (optional)
 
@@ -151,7 +151,7 @@ Set `--bowtie_all false` if you want more restrictive reporting. For RT-stop/Bow
 
 `rf-count` quantifies chemical probing signal from the aligned transcript-coordinate BAM files produced either by the transcriptome route or by STAR `--quantMode TranscriptomeSAM` on the default genome route. If `--count_genome true` is set, the genome route instead uses `rf-count-genome` followed by `rf-rctools extract`. What exactly is counted depends on the principle: for RT-stop experiments it tallies read 3′ ends that accumulate at modified bases; for MaP it measures per-position mutation rates.
 
-When `--count_genome true` is used, strandedness is handled automatically for `rf-count-genome`: RT-stop libraries are always treated as second-strand (this is fixed by experimental design), while for MaP the pipeline infers strandedness per sample using `RSeQC infer_experiment`. If inference is ambiguous you can override it with `--rfcount_strandedness first|second|unstranded`. After genome-coordinate counting, `rf-rctools extract` converts the genome-coordinate RC files to transcript-level RC files using the GTF before passing to `rf-norm`.
+When `--count_genome true` is used, strandedness is handled automatically for `rf-count-genome`: RT-stop libraries are always treated as second-strand (this is fixed by experimental design), while for MaP the pipeline infers strandedness per sample using `RSeQC infer_experiment`. A sample is called stranded when more than 70% of reads support one orientation, otherwise unstranded. `--rfcount_strandedness first|second|unstranded` is only a fallback for samples where inference cannot run (references without a usable annotation, e.g. many viruses and bacteria); it does not override an inferred value. After genome-coordinate counting, `rf-rctools extract` converts the genome-coordinate RC files to transcript-level RC files using the GTF before passing to `rf-norm`.
 
 For MaP samples, `RT_enzyme` controls several mutation-cleanup defaults. Set it per sample with the `RT_enzyme` samplesheet column, or globally with `--RT_enzyme` when the same enzyme was used for all rows. The pipeline currently distinguishes Group II Intron RTs, including TGIRT, from all other or unset enzymes; non-Group-II values use M-MLV-like defaults.
 
@@ -167,7 +167,7 @@ Other parameters worth knowing about:
 
 `--rfcount_primary_only` restricts counting to alignments marked as primary. This is most relevant when the aligner emits multiple records per read, such as STAR multimappers or Bowtie2 `--bowtie_all`/`-k` output; otherwise a read can contribute to more than one locus or transcript. For Bowtie v1 `--bowtie_all`, use `--bowtie_all false` and `--bowtie_k` if you need stricter one-alignment-per-read reporting.
 
-`--rfcount_max_coverage` caps mean coverage before counting. rf-count processes each reference serially, so a small reference at extreme depth is slow in a way no amount of CPU fixes: a 30 kb viral genome at ~10<sup>6</sup>× takes days, while the same library capped at 50,000× takes about an hour and gives the same reactivities, since mutation rates converge long before that. When the BAM's mean coverage across references that have alignments exceeds the cap, alignments are randomly subsampled down to it; coverage under the cap is left untouched. Selection is by read name, so every alignment of a read is kept or dropped together and multimapper structure survives. Unset by default. Note the cap uses the mean across covered references, so it will not trim one very deep reference sitting inside a large transcriptome.
+`--rfcount_max_coverage` caps mean coverage before counting. rf-count processes each reference serially, so a small reference at extreme depth is slow in a way no amount of CPU fixes: a 30 kb viral genome at ~10<sup>6</sup>× takes days, while the same library capped at 50,000× takes about an hour and gives the same reactivities, since mutation rates converge long before that. When the BAM's mean coverage across references that have alignments exceeds the cap, alignments are randomly subsampled down to it; coverage under the cap is left untouched. Selection is by read name, so every alignment of a read is kept or dropped together and multimapper structure survives. Unset by default. Note the cap uses the mean across covered references, so it will not trim one very deep reference sitting inside a large transcriptome. It applies to `rf-count` only, not to `rf-count-genome` under `--count_genome true`.
 
 For the full list of available options see the [rf-count documentation](https://rnaframework-docs.readthedocs.io/en/latest/rf-count/). Any flag not exposed as a pipeline parameter can be passed directly via `ext.args` in a custom config.
 
@@ -203,7 +203,7 @@ Other parameters worth knowing about:
 
 `--rfnorm_mean_coverage` and `--rfnorm_median_coverage` discard transcripts whose mean or median coverage falls below the given threshold (both default `0`, i.e. no filtering).
 
-`--rfnorm_prefilter_min_coverage` (genome route only) shrinks the full-annotation RC before rf-norm by keeping only transcripts with at least one covered base (default `1`; set `0` to keep the full annotation). This is what keeps the genome-route RC transcriptome-sized.
+`--rfnorm_prefilter_min_coverage` (`--count_genome true` only) shrinks the full-annotation RC produced by `rf-rctools extract` before rf-norm by keeping only transcripts with at least one base at or above this coverage (default `1`; set `0` to keep the full annotation). This is what keeps the `rf-count-genome` RC transcriptome-sized.
 
 For the full list of available options see the [rf-norm documentation](https://rnaframework-docs.readthedocs.io/en/latest/rf-norm/). Any flag not exposed as a pipeline parameter can be passed directly via `ext.args` in a custom config.
 
