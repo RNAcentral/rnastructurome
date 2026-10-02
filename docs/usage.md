@@ -97,6 +97,8 @@ Set `--cutadapt_quality_only` to skip adapter trimming and perform quality/lengt
 
 On 2-colour runs (NextSeq/NovaSeq), lost signal reads as high-quality G, which quality trimming misses. If post-trim FastQC fails Adapter Content on PolyG, set `--cutadapt_nextseq_trim 20`.
 
+In short-insert libraries (e.g. tRNA, miRNA) every genuine read runs into the 3' adapter, so a read with no adapter found is read-through junk. Set `--cutadapt_discard_untrimmed` to drop those reads.
+
 ### Deduplication and UMI handling (optional)
 
 By default the pipeline does **not** deduplicate reads (`--skip_markdup true`). Position-based deduplication is not valid for chemical-probing data without UMIs; reads that start at the same coordinate are independent molecules, not PCR duplicates. Set `--skip_markdup false` to enable SAMtools markdup if you know position-based dedup is appropriate for your library.

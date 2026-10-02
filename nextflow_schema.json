@@ -201,6 +201,11 @@
                 "cutadapt_nextseq_trim": {
                     "type": "integer",
                     "description": "Enable cutadapt `--nextseq-trim` with this 3' quality cutoff, trimming high-quality poly-G tails left by 2-colour (NextSeq/NovaSeq) chemistry. Off by default."
+                },
+                "cutadapt_discard_untrimmed": {
+                    "type": "boolean",
+                    "description": "Discard reads in which no adapter was found. For short-insert libraries (e.g. tRNA, miRNA) where every genuine read runs into the adapter.",
+                    "default": false
                 }
             }
         },
