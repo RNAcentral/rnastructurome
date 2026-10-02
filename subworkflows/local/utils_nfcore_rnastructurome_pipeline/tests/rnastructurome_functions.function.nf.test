@@ -217,7 +217,7 @@ nextflow_function {
     test("selectClosestControl returns nothing when two arms are equally distant") {
         function "selectClosestControl"
         when { function { """ input[0] = 'untreated'; input[1] = 'A_z_3'; input[2] = [ [ prefix: 1, same_replicate: false, control_group: 'A_x_1', rc: 'A_x_1.rc' ], [ prefix: 1, same_replicate: false, control_group: 'A_y_2', rc: 'A_y_2.rc' ] ] """ } }
-        then { assert function.success; assert function.result == [ 'A_z_3', null ] }
+        then { assert function.success; assert function.result == [ 'A_z_3', null ]; assert path("$metaDir/nextflow.log").text.contains("No untreated for 'A_z_3'") }
     }
 
     test("selectClosestControl treats several runs of one control group as a single control") {

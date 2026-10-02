@@ -846,6 +846,7 @@ def selectClosestControl(String label, String group, List candidates) {
         log.warn "No ${label} at replicate for '${group}' — falling back to '${distinct[0].control_group}' (longest shared sample_group prefix, different replicate). Set --fuzzy_untreated_pairing false to require exact matches."
         return [ group, distinct[0].rc ]
     }
+    log.warn "No ${label} for '${group}': ${distinct.collect { c -> c.control_group }.sort().join(', ')} are equally close at other replicates, so none is used."
     return [ group, null ]
 }
 
