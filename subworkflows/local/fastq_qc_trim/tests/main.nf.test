@@ -36,4 +36,32 @@ nextflow_workflow {
             )
         }
     }
+
+    test("--cutadapt_discard_untrimmed drops reads with no adapter") {
+
+        when {
+            params {
+                outdir                     = "$outputDir"
+                cutadapt_discard_untrimmed = true
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'untrimmed', principle:'MaP', single_end:true ],
+                        [ file("\${projectDir}/tests/data/untrimmed_read.fastq.gz", checkIfExists: true) ]
+                    ]
+                )
+                """
+            }
+        }
+
+        then {
+            def seqs = path(workflow.out.map_trimmed[0][1]).linesGzip.collate(4).collect { record -> record[1] }
+            assertAll(
+                { assert workflow.success },
+                { assert seqs == ['ACGTTAGCCATGCAAGTCCATGCAATGCATCGATCGTTAG'] }
+            )
+        }
+    }
 }
