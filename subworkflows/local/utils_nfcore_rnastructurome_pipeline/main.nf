@@ -817,30 +817,20 @@ def renderRfNormSummary(sampleMetadata) {
     ]
 }
 
-// Number of leading underscore-separated tokens two sample_groups share, e.g.
-// ("HFF_infected_HCMV_05hpi", "HFF_infected_HCMV_72hpi") → 3, ("HFF_uninfected", "HFF_infected") → 1.
-// Fuzzy untreated-pairing ranks candidate controls by this: the longest shared prefix is the closest
-// relative. The first token alone cannot tell the arms of an experiment apart.
+// Leading `_` tokens two sample_groups share: HFF_infected_HCMV_05hpi vs HFF_infected_HCMV_72hpi → 3.
 def sharedGroupPrefixLength(String a, String b) {
-    // transpose() stops at the shorter list, so the first mismatch is the shared-prefix length;
-    // no mismatch means one group is a prefix of the other.
+    // transpose() stops at the shorter list, so no mismatch means one is a prefix of the other.
     def pairs    = [ a.tokenize('_'), b.tokenize('_') ].transpose()
     def mismatch = pairs.findIndexOf { pair -> pair[0] != pair[1] }
     return mismatch < 0 ? pairs.size() : mismatch
 }
 
-// Picks one control for a treated group from its ranked fuzzy candidates, or null for none. Closest
-// sample_group prefix wins outright, then an exact replicate match; failing that, a single control in the
-// closest arm is reused across replicates. A tie at the same replicate is fatal for either control type:
-// for untreated because rf-norm scoring depends on it, and for denatured because rf-normfactor drops the
-// denatured set for the WHOLE reference as soon as one group lacks it, so quietly skipping one group would
-// silently change every group's normalisation.
+// A tie at the same replicate is fatal: guessing would silently change the normalisation.
 def selectClosestControl(String label, String group, List candidates) {
     def bestPrefix = candidates.collect { c -> c.prefix }.max()
     def closest    = candidates.findAll { c -> c.prefix == bestPrefix }
 
-    // Count distinct control GROUPS, not candidates: one group legitimately holds several runs (amplicon
-    // tiling pools, the segments of a segmented genome), and those are one control, not an ambiguity.
+    // Count control groups, not runs: one group can hold several runs (e.g. amplicon tiling pools).
     def sameRep = closest.findAll { c -> c.same_replicate }
     def sameRepGroups = sameRep.collect { c -> c.control_group }.unique()
     if (sameRepGroups.size() > 1) {

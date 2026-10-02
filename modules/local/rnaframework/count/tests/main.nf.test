@@ -47,8 +47,7 @@ nextflow_process {
         }
     }
 
-    // The nf-core sarscov2 BAM carries no MD tags and keeps unmapped mates, both of which send
-    // rf-count -m down its calmd path, where it never re-indexes the BAM and dies on the split.
+    // This BAM has no MD tags and keeps unmapped mates, which triggers rf-count's calmd bug.
     test("rfcount - map mode on a BAM without MD tags") {
 
         when {
@@ -79,8 +78,7 @@ nextflow_process {
         }
     }
 
-    // An ambiguity code in the reference reaches the MD tag via calmd, and rf-count's MD parser
-    // loops forever on it. The config's time limit turns that hang into a failure.
+    // rf-count hangs on an ambiguity code; the config's time limit turns that into a failure.
     test("rfcount - map mode on a reference with IUPAC ambiguity codes") {
 
         when {
@@ -111,8 +109,7 @@ nextflow_process {
         }
     }
 
-    // Exercises the --rfcount_max_coverage path. This BAM is ~0.9x, under any valid cap, so the
-    // measurement runs and decides not to subsample; rf-count must still complete unchanged.
+    // This BAM is ~0.9x, under any valid cap, so --rfcount_max_coverage must not subsample.
     test("rfcount - coverage cap leaves a shallow BAM untouched") {
 
         when {

@@ -31,17 +31,12 @@ process RNAFRAMEWORK_RFCOUNT {
     def is_map = ((meta.principle ?: '').toLowerCase() == 'map') ? '1' : '0'
     def max_cov = params.rfcount_max_coverage ?: 0
     """
-    # rf-count 2.9.6 bug: if any of the first 100 records lacks an MD tag (an unmapped mate is
-    # enough) it runs calmd itself into a BAM it never re-indexes, and -m then dies on "Unable
-    # to extract". Hand it mapped reads with MD tags and that path never runs.
-    # Its MD parser also loops forever on an ambiguity code (e.g. Y) that calmd copies from the
-    # reference, so those are masked to N, which it skips.
+    # rf-count 2.9.7 hangs on ambiguity codes and fails without MD tags: mask to N, pre-run calmd.
     sed '/^>/!s/[RYKMSWBDHVrykmswbdhv]/N/g' "${fasta}" > ref.fa
     samtools view -@ ${task.cpus} -b -F 4 "${bam}" | samtools calmd -@ ${task.cpus} -b - ref.fa > mapped.bam
     samtools index -@ ${task.cpus} mapped.bam
 
-    # rf-count walks every alignment serially per reference, so a small reference at extreme
-    # depth takes days. samtools -s selects by read name, keeping a read's alignments together.
+    # rf-count is serial per reference, so cap very deep ones; -s keeps a read's alignments together.
     if [[ ${max_cov} -gt 0 ]]; then
         set +o pipefail
         read_len=\$(samtools view mapped.bam | head -n 1000 | awk '{ s += length(\$10) } END { if (NR) printf "%d", s / NR; else printf "0" }')
@@ -62,9 +57,7 @@ process RNAFRAMEWORK_RFCOUNT {
         fi
     fi
 
-    # rf-count runs one samtools view per FASTA transcript into <outdir>/tmp/, so a whole
-    # transcriptome (~250k for human) is ~250k invocations per sample and never finishes on
-    # shared storage. Restrict it to the references that actually have alignments.
+    # rf-count runs samtools once per FASTA entry, so keep only references with reads.
     samtools idxstats mapped.bam | awk '\$3 > 0 { print \$1 }' > covered_refs.txt
     awk 'NR == FNR { keep[\$1]; next } /^>/ { p = (substr(\$1, 2) in keep) } p' covered_refs.txt ref.fa > covered.fa
     FASTA_PATH="covered.fa"

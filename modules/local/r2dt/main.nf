@@ -40,8 +40,7 @@ process R2DT {
     # ── 2. Run R2DT template-based layout ──────────────────────────────────────
     # Keep R2DT's FULL output + exit status: r2dt_status below is the authoritative
     # success/failure signal (see step 3) — the log itself is for diagnostics only.
-    # No early `exit 0` on empty input: Nextflow appends the eval-output capture (.command.env)
-    # to this script, so exiting skips it and the task fails on "No such file .command.env".
+    # No early exit: it skips Nextflow's appended .command.env capture and fails the task.
     mkdir -p r2dt_raw
     r2dt_status=0
     if [[ ! -s r2dt_input.fa ]]; then

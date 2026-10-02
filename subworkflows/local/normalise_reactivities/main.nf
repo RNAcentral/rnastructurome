@@ -82,10 +82,7 @@ workflow NORMALISE_REACTIVITIES {
             [ group, entries.find { entry -> entry.condition == 'treated' }.meta ]
         }
 
-    // Fuzzy control pairing fallback (default on; disable with --fuzzy_untreated_pairing false). A treated
-    // group with no exact control falls back to the one sharing the longest sample_group token prefix —
-    // "HFF_infected_HCMV_05hpi" prefers "HFF_infected_HCMV_72hpi" (3 tokens) over "HFF_uninfected" (1) —
-    // preferring the same replicate. Applies to untreated and denatured alike.
+    // A treated group with no exact control takes the one sharing the longest sample_group prefix.
     def ch_resolved_untreated
     def ch_resolved_denatured
     if (params.fuzzy_untreated_pairing as Boolean) {
@@ -102,7 +99,7 @@ workflow NORMALISE_REACTIVITIES {
                 [ meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
             }
 
-        // Treated groups with no untreated of their own — candidates for fuzzy lookup.
+        // Treated groups with no untreated of their own.
         def ch_treated_no_untreated = ch_treated
             .join(ch_group_meta)
             .join(ch_untreated, remainder: true)
@@ -111,8 +108,7 @@ workflow NORMALISE_REACTIVITIES {
                 [ base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
             }
 
-        // Cross-product treated-without-control × available controls, keeping pairs that share at least
-        // the first token, then grouped by treated group to rank and pick one.
+        // Pair with every control sharing at least the first token, then pick one per treated group.
         def ch_fallback_untreated = ch_treated_no_untreated
             .combine(ch_untreated_lookup)
             .map { treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
@@ -130,9 +126,7 @@ workflow NORMALISE_REACTIVITIES {
 
         ch_resolved_untreated = ch_untreated.mix(ch_fallback_untreated)
 
-        // Same treatment for denatured, except it is only offered to groups that already have an
-        // untreated: rf-norm rejects a denatured control without one, so inheriting a denatured must not
-        // create that state.
+        // Denatured only goes to groups with an untreated, since rf-norm rejects it otherwise.
         def ch_treated_no_denatured = ch_treated
             .join(ch_group_meta)
             .join(ch_denatured, remainder: true)
