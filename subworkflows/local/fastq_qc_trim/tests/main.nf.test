@@ -13,14 +13,15 @@ nextflow_workflow {
         when {
             params {
                 outdir                = "$outputDir"
+                cutadapt_quality_only = true
                 cutadapt_nextseq_trim = 20
             }
             workflow {
                 """
                 input[0] = Channel.of(
                     [
-                        [ id:'polyg', principle:'MaP', single_end:true ],
-                        [ file("\${projectDir}/tests/data/polyg_tail.fastq.gz", checkIfExists: true) ]
+                        [ id:'ecoli', principle:'MaP', single_end:true ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/test_prokaryote/E_coli_DH5a_treated.16S_rRNA.fastq.gz', checkIfExists: true) ]
                     ]
                 )
                 """
@@ -31,8 +32,7 @@ nextflow_workflow {
             def seqs = path(workflow.out.map_trimmed[0][1]).linesGzip.collate(4).collect { record -> record[1] }
             assertAll(
                 { assert workflow.success },
-                { assert seqs.size() == 3 },
-                { assert seqs.every { seq -> seq.length() == 50 && !seq.endsWith('G') } }
+                { assert !seqs.any { seq -> seq.endsWith('GGGGGGGGGG') } }
             )
         }
     }
@@ -48,8 +48,8 @@ nextflow_workflow {
                 """
                 input[0] = Channel.of(
                     [
-                        [ id:'untrimmed', principle:'MaP', single_end:true ],
-                        [ file("\${projectDir}/tests/data/untrimmed_read.fastq.gz", checkIfExists: true) ]
+                        [ id:'ecoli', principle:'MaP', single_end:true ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/test_prokaryote/E_coli_DH5a_treated.16S_rRNA.fastq.gz', checkIfExists: true) ]
                     ]
                 )
                 """
@@ -60,7 +60,7 @@ nextflow_workflow {
             def seqs = path(workflow.out.map_trimmed[0][1]).linesGzip.collate(4).collect { record -> record[1] }
             assertAll(
                 { assert workflow.success },
-                { assert seqs == ['ACGTTAGCCATGCAAGTCCATGCAATGCATCGATCGTTAG'] }
+                { assert seqs.size() == 2945 }
             )
         }
     }

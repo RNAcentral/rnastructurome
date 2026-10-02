@@ -30,6 +30,15 @@ nextflow_function {
         then { assert function.success; assert function.result == 3 }
     }
 
+    test("resolveRfNormNormMethod allows the 2-8% override") {
+        function "resolveRfNormNormMethod"
+        when {
+            params { rfnorm_norm_method = 1 }
+            function { """ input[0] = 1 """ }
+        }
+        then { assert function.success; assert function.result == 1 }
+    }
+
     test("resolveRfNormScoreMethod defaults by principle and untreated control") {
         function "resolveRfNormScoreMethod"
         when { function { """ input[0] = 'rt-stop'; input[1] = true """ } }
