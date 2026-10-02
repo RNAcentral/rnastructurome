@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.1.0dev - [unreleased]
 
+**Behaviour change:** treated groups whose `sample_group` shares no leading token with any control now get no control; the reference-wide lone-control fallback is gone.
+
 ### `Added`
 
 - `--cutadapt_nextseq_trim` passes Cutadapt `--nextseq-trim` with the given 3′ quality cutoff, stripping the high-quality poly-G tails that 2-colour (NextSeq/NovaSeq) chemistry leaves behind and quality trimming misses.
@@ -14,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### `Changed`
 
 - Fuzzy control pairing (`--fuzzy_untreated_pairing`) now picks the untreated or denatured control whose `sample_group` shares the longest leading token prefix with the treated group, rather than matching on the first token only, so each arm of a design such as `HFF_uninfected` / `HFF_HCMV_05hpi` / `HFF_HCMV_72hpi` gets its own control instead of aborting as ambiguous. A lone control is reused across an arm's replicates, denatured controls are resolved the same way, and a group holding several runs (amplicon pools, genome segments) is no longer counted as a tie.
-- Fuzzy pairing no longer falls back to the only untreated control anywhere on the reference, which could pair unrelated samples (e.g. a K562 control with HEK293T treated). A treated group sharing no leading token with any control is now left uncontrolled, and `rf-normfactor` reports it.
 - `rf-count` now counts only the references that have alignments, instead of running one `samtools view` per FASTA entry; whole-transcriptome runs (~250k human transcripts) previously never finished. RC files therefore list only covered references. The `codon` profile now gives the genome-route `rf-count` task the same resources as the transcriptome-route one.
 
 ### `Fixed`
