@@ -163,6 +163,7 @@ nextflow_workflow {
                 rfcount_map_min_quality           = 25
                 rfcount_map_collapse_consecutive  = true
                 rfcount_map_max_collapse_distance = 3
+                rfcount_map_max_coverage          = 1000
             }
             workflow {
                 """
