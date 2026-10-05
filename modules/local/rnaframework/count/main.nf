@@ -29,33 +29,11 @@ process RNAFRAMEWORK_RFCOUNT {
     // Mirrors the -m (mutation mode) decision in conf/modules.config, so the summary parser knows
     // which rf-count table layout to expect (MaP has a Mutated-alignments column; RT-stop does not).
     def is_map = ((meta.principle ?: '').toLowerCase() == 'map') ? '1' : '0'
-    def max_cov = params.rfcount_max_coverage ?: 0
     """
     # rf-count 2.9.7 hangs on ambiguity codes and fails without MD tags: mask to N, pre-run calmd.
     sed '/^>/!s/[RYKMSWBDHVrykmswbdhv]/N/g' "${fasta}" > ref.fa
     samtools view -@ ${task.cpus} -b -F 4 "${bam}" | samtools calmd -@ ${task.cpus} -b - ref.fa > mapped.bam
     samtools index -@ ${task.cpus} mapped.bam
-
-    # rf-count is serial per reference, so cap very deep ones; -s keeps a read's alignments together.
-    if [[ ${max_cov} -gt 0 ]]; then
-        set +o pipefail
-        read_len=\$(samtools view mapped.bam | head -n 1000 | awk '{ s += length(\$10) } END { if (NR) printf "%d", s / NR; else printf "0" }')
-        set -o pipefail
-        read cov frac <<< "\$(samtools idxstats mapped.bam | awk -v rl="\${read_len}" -v cap=${max_cov} '
-            \$3 > 0 { aln += \$3; len += \$2 }
-            END {
-                cov = (aln && len && rl) ? aln * rl / len : 0
-                f   = (cov > cap) ? cap / cov : 1
-                printf "%.0f %.8f", cov, f
-            }')"
-        echo "[RNAFRAMEWORK_RFCOUNT] mean coverage \${cov}x over covered references (cap ${max_cov})"
-        if [[ "\${frac}" != "1.00000000" ]]; then
-            echo "[RNAFRAMEWORK_RFCOUNT] subsampling to \${frac} of alignments"
-            samtools view -@ ${task.cpus} -b -s "\${frac}" mapped.bam > capped.bam
-            mv capped.bam mapped.bam
-            samtools index -@ ${task.cpus} mapped.bam
-        fi
-    fi
 
     # rf-count runs samtools once per FASTA entry, so keep only references with reads.
     samtools idxstats mapped.bam | awk '\$3 > 0 { print \$1 }' > covered_refs.txt

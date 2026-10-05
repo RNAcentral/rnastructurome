@@ -167,7 +167,7 @@ Other parameters worth knowing about:
 
 `--rfcount_primary_only` restricts counting to alignments marked as primary. This is most relevant when the aligner emits multiple records per read, such as STAR multimappers or Bowtie2 `--bowtie_all`/`-k` output; otherwise a read can contribute to more than one locus or transcript. For Bowtie v1 `--bowtie_all`, use `--bowtie_all false` and `--bowtie_k` if you need stricter one-alignment-per-read reporting.
 
-`--rfcount_max_coverage` caps mean coverage before counting by randomly subsampling alignments, keeping all alignments of a read together. Use it when a small reference is sequenced to extreme depth (e.g. a viral genome at ~10<sup>6</sup>×), which can otherwise take rf-count days; a cap of `50000` gives the same reactivities in about an hour. Unset by default. The cap applies to the mean across covered references, so it will not trim one deep reference inside a large transcriptome, and it is not used with `--count_genome true`.
+`--rfcount_map_max_coverage` caps the coverage of each transcript in MaP samples which is helpful when transcripts are sequenced to extreme depths. Only transcripts above the cap are downsampled; `20000` is recommended, with a minimum of `1000` allowed.
 
 For the full list of available options see the [rf-count documentation](https://rnaframework-docs.readthedocs.io/en/latest/rf-count/). Any flag not exposed as a pipeline parameter can be passed directly via `ext.args` in a custom config.
 
