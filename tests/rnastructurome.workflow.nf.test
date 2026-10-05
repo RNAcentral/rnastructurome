@@ -440,8 +440,7 @@ nextflow_workflow {
                 { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_rep1' }[0].rfnorm_scoring_method == 3 },
                 { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_rep1' }[0].rfnorm_norm_method == 3 },
                 { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_rep1' }[0].rfnorm_has_denatured },
-                // rep2 has no untreated of its own; the reference-wide reuse fallback supplies
-                // hek293T's single untreated, so rep2 resolves to has-untreated scoring (method 3).
+                // rep2 has no untreated of its own, so it reuses rep1's, the arm's only one.
                 { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_rep2' }[0].rfnorm_scoring_method == 3 },
                 { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_rep2' }[0].rfnorm_norm_method == 3 },
                 { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_rep2' }[0].rfnorm_has_untreated }
