@@ -97,7 +97,7 @@ Set `--cutadapt_quality_only` to skip adapter trimming and perform quality/lengt
 
 On 2-colour runs (NextSeq/NovaSeq), lost signal reads as high-quality G, which quality trimming misses. If post-trim FastQC fails Adapter Content on PolyG, set `--cutadapt_nextseq_trim 20`.
 
-In short-insert libraries (e.g. tRNA, miRNA) every genuine read runs into the 3' adapter, so a read with no adapter found is read-through junk. Set `--cutadapt_discard_untrimmed` to drop those reads. It relies on adapter trimming, so do not combine it with `--cutadapt_quality_only`.
+In short-insert libraries (e.g. tRNA, miRNA) every genuine read runs into the 3' adapter, so a read with no adapter found is read-through junk. Set `--cutadapt_discard_untrimmed` to drop those reads. It relies on adapter trimming, so the pipeline stops if it is combined with `--cutadapt_quality_only`.
 
 ### Deduplication and UMI handling (optional)
 

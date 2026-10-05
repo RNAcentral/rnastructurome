@@ -87,6 +87,10 @@ workflow PIPELINE_INITIALISATION {
         nextflow_cli_args
     )
 
+    if (params.cutadapt_discard_untrimmed && params.cutadapt_quality_only) {
+        error("--cutadapt_discard_untrimmed needs adapter trimming, so it cannot be combined with --cutadapt_quality_only (every read would be discarded).")
+    }
+
     // Create channel from input file provided through `input`
 
     def samplesheet_rows = samplesheetToList(input, "${projectDir}/assets/schema_input.json")

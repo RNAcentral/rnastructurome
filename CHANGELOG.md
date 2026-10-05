@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### `Added`
 
 - `--cutadapt_nextseq_trim` passes Cutadapt `--nextseq-trim` with the given 3′ quality cutoff, stripping the high-quality poly-G tails that 2-colour (NextSeq/NovaSeq) chemistry leaves behind and quality trimming misses.
-- `--cutadapt_discard_untrimmed` drops reads in which no adapter was found, for short-insert libraries (e.g. tRNA, miRNA) where every genuine read runs into the adapter.
+- `--cutadapt_discard_untrimmed` drops reads in which no adapter was found, for short-insert libraries (e.g. tRNA, miRNA) where every genuine read runs into the adapter. It cannot be combined with `--cutadapt_quality_only`.
 - `--rfcount_max_coverage` caps mean coverage before `rf-count` by subsampling alignments by read name, so a small reference at extreme depth (e.g. a viral genome at ~10<sup>6</sup>×) counts in about an hour rather than days. Off by default; does not apply to `--count_genome true`.
 
 ### `Changed`
