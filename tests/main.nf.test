@@ -15,7 +15,7 @@ nextflow_workflow {
         when {
             params {
                 outdir = "$outputDir"
-                fasta  = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                fasta  = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
                 gtf    = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
             }
             workflow {
@@ -23,7 +23,7 @@ nextflow_workflow {
                 input[0] = Channel.of(
                     [
                         [ id:'main_rtstop', sample_id:'main_rtstop', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
-                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
                     ]
                 )
                 input[1] = false
@@ -49,7 +49,7 @@ nextflow_workflow {
         when {
             params {
                 outdir                = "$outputDir"
-                fasta                 = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                fasta                 = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
                 gtf                   = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
                 rfnorm_use_normfactor = true
             }
@@ -58,7 +58,7 @@ nextflow_workflow {
                 input[0] = Channel.of(
                     [
                         [ id:'main_rtstop', sample_id:'main_rtstop', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
-                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
                     ]
                 )
                 input[1] = false
@@ -83,7 +83,7 @@ nextflow_workflow {
         when {
             params {
                 outdir        = "$outputDir"
-                fasta         = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                fasta         = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
                 gtf           = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
                 structextract = true
             }
@@ -92,7 +92,7 @@ nextflow_workflow {
                 input[0] = Channel.of(
                     [
                         [ id:'main_rtstop', sample_id:'main_rtstop', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
-                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
                     ]
                 )
                 input[1] = false
@@ -117,7 +117,7 @@ nextflow_workflow {
         when {
             params {
                 outdir = "$outputDir"
-                fasta  = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                fasta  = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
                 gtf    = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
             }
             workflow {
@@ -125,11 +125,11 @@ nextflow_workflow {
                 input[0] = Channel.of(
                     [
                         [ id:'main_rtstop_r1', sample_id:'main_rtstop_r1', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
-                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
                     ],
                     [
                         [ id:'main_rtstop_r2', sample_id:'main_rtstop_r2', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep2', condition:'treated' ],
-                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
                     ]
                 )
                 input[1] = false
