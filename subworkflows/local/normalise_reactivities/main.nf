@@ -92,17 +92,17 @@ workflow NORMALISE_REACTIVITIES {
     def ch_resolved_untreated
     def ch_resolved_denatured
     if (params.fuzzy_untreated_pairing as Boolean) {
-        // Controls of each kind, keyed as [sample_group, replicate, group, rc] for cross-matching.
+        // Controls of each kind, keyed as [reference, sample_group, replicate, group, rc] for cross-matching.
         def ch_untreated_lookup = ch_rc_by_group
             .filter  { _group, condition, _meta, _rc, _rci -> condition == 'untreated' }
             .map     { group, _condition, meta, rc, _rci ->
-                [ meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
+                [ resolveReferenceKey(meta), meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
             }
 
         def ch_denatured_lookup = ch_rc_by_group
             .filter  { _group, condition, _meta, _rc, _rci -> condition == 'denatured' }
             .map     { group, _condition, meta, rc, _rci ->
-                [ meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
+                [ resolveReferenceKey(meta), meta.sample_group.toString(), meta.replicate.toString(), group, rc ]
             }
 
         // Treated groups with no untreated of their own.
@@ -111,13 +111,13 @@ workflow NORMALISE_REACTIVITIES {
             .join(ch_untreated, remainder: true)
             .filter { _group, _treated_rcs, _base_meta, untreated_rc -> !untreated_rc }
             .map    { group, _treated_rcs, base_meta, _untreated_rc ->
-                [ base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
+                [ resolveReferenceKey(base_meta), base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
             }
 
         // Pair with every control sharing at least the first token, then pick one per treated group.
         def ch_fallback_untreated = ch_treated_no_untreated
-            .combine(ch_untreated_lookup)
-            .map { treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
+            .combine(ch_untreated_lookup, by: 0)
+            .map { _ref, treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
                 [ group, [
                     prefix         : sharedGroupPrefixLength(treated_sg, ctl_sg),
                     same_replicate : treated_rep == ctl_rep,
@@ -139,12 +139,12 @@ workflow NORMALISE_REACTIVITIES {
             .filter { _group, _treated_rcs, _base_meta, denatured_rc -> !denatured_rc }
             .join(ch_resolved_untreated)
             .map    { group, _treated_rcs, base_meta, _denatured_rc, _untreated_rc ->
-                [ base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
+                [ resolveReferenceKey(base_meta), base_meta.sample_group.toString(), base_meta.replicate.toString(), group ]
             }
 
         def ch_fallback_denatured = ch_treated_no_denatured
-            .combine(ch_denatured_lookup)
-            .map { treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
+            .combine(ch_denatured_lookup, by: 0)
+            .map { _ref, treated_sg, treated_rep, group, ctl_sg, ctl_rep, ctl_group, ctl_rc ->
                 [ group, [
                     prefix         : sharedGroupPrefixLength(treated_sg, ctl_sg),
                     same_replicate : treated_rep == ctl_rep,

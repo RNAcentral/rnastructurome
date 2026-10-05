@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Fixed`
 
+- Fuzzy control pairing only borrows a control from the same reference, so samples from different organisms can no longer pair.
 - A `sample_group`/`replicate` group with more than one untreated or denatured sample now stops with a clear error instead of crashing; give runs of the same control the same sample name so they are concatenated.
 - `rf-count` no longer dies with "Unable to extract" when any of the first BAM records lacks an MD tag (an unmapped mate is enough): it now receives a mapped-only, MD-tagged, indexed BAM.
 - `rf-count` no longer hangs at 100% CPU on references containing IUPAC ambiguity codes (e.g. `Y`, `R`); these are masked to `N` before counting, so those positions report no reactivity.

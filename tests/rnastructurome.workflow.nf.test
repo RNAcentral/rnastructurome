@@ -478,6 +478,45 @@ nextflow_workflow {
         }
     }
 
+    test("Fuzzy pairing does not borrow a control from another reference") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir = "$outputDir"
+                fasta  = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'human_infected_rep1', sample_id:'human_infected_rep1', principle:'MaP', organism:'Homo sapiens', single_end:true, sample_group:'hek293T_infected', replicate:'rep1', condition:'treated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333256.R1.HEK293T_treated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'mouse_mock_rep1', sample_id:'mouse_mock_rep1', principle:'MaP', organism:'Mus musculus', single_end:true, sample_group:'hek293T_mock', replicate:'rep1', condition:'treated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333256.R1.HEK293T_treated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'mouse_mock_untreated_rep1', sample_id:'mouse_mock_untreated_rep1', principle:'MaP', organism:'Mus musculus', single_end:true, sample_group:'hek293T_mock', replicate:'rep1', condition:'untreated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_mock_rep1' }[0].rfnorm_has_untreated },
+                { assert !workflow.out.normalized_xml.find { entry -> entry[0].id == 'hek293T_infected_rep1' }[0].rfnorm_has_untreated }
+            )
+        }
+    }
+
     test("Fails rf-norm when untreated lacks matching treated sample") {
 
         options "-stub"
