@@ -517,6 +517,42 @@ nextflow_workflow {
         }
     }
 
+    test("Fails rf-norm when a group spans more than one reference") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir = "$outputDir"
+                fasta  = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'human_wt_rep1', sample_id:'human_wt_rep1', principle:'MaP', organism:'Homo sapiens', single_end:true, sample_group:'WT', replicate:'rep1', condition:'treated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333256.R1.HEK293T_treated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'mouse_wt_rep1', sample_id:'mouse_wt_rep1', principle:'MaP', organism:'Mus musculus', single_end:true, sample_group:'WT', replicate:'rep1', condition:'untreated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert !workflow.success },
+                { assert workflow.errorMessage.contains("spans more than one reference") },
+                { assert workflow.errorMessage.contains("human_wt_rep1 (homo_sapiens)") },
+                { assert workflow.errorMessage.contains("mouse_wt_rep1 (mus_musculus)") }
+            )
+        }
+    }
+
     test("Fails rf-norm when untreated lacks matching treated sample") {
 
         options "-stub"

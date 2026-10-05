@@ -78,6 +78,10 @@ workflow NORMALISE_REACTIVITIES {
                     .collect { entry -> "${entry.meta.id} (${entry.condition})" }.sort().join(', ')
                 error("rf-norm requires a treated sample for denatured controls in sample_group/replicate group '${group}'. Invalid samples: ${offending}")
             }
+            if (entries.collect { entry -> resolveReferenceKey(entry.meta) }.unique().size() > 1) {
+                def samples = entries.collect { entry -> "${entry.meta.id} (${resolveReferenceKey(entry.meta)})" }.sort().join(', ')
+                error("Group '${group}' spans more than one reference: ${samples}. Give each organism its own sample_group.")
+            }
             ['untreated', 'denatured'].each { control ->
                 def ids = entries.findAll { entry -> entry.condition == control }.collect { entry -> entry.meta.id }.sort()
                 if (ids.size() > 1) {
