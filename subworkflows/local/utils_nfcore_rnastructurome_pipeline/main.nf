@@ -830,23 +830,20 @@ def selectClosestControl(String label, String group, List candidates) {
     def bestPrefix = candidates.collect { c -> c.prefix }.max()
     def closest    = candidates.findAll { c -> c.prefix == bestPrefix }
 
-    // Count control groups, not runs: one group can hold several runs (e.g. amplicon tiling pools).
     def sameRep = closest.findAll { c -> c.same_replicate }
-    def sameRepGroups = sameRep.collect { c -> c.control_group }.unique()
-    if (sameRepGroups.size() > 1) {
-        error("Ambiguous ${label} fallback for '${group}': multiple ${label} groups share the same sample_group prefix and replicate: ${sameRepGroups.sort().join(', ')}. Use --fuzzy_untreated_pairing false to disable fuzzy matching.")
+    if (sameRep.size() > 1) {
+        error("Ambiguous ${label} fallback for '${group}': multiple ${label} groups share the same sample_group prefix and replicate: ${sameRep.collect { c -> c.control_group }.sort().join(', ')}. Use --fuzzy_untreated_pairing false to disable fuzzy matching.")
     }
-    if (sameRepGroups.size() == 1) {
+    if (sameRep.size() == 1) {
         log.warn "No exact ${label} match for '${group}' — falling back to '${sameRep[0].control_group}' (longest shared sample_group prefix, same replicate). Set --fuzzy_untreated_pairing false to require exact matches."
         return [ group, sameRep[0].rc ]
     }
 
-    def distinct = closest.unique { c -> c.control_group }   // same de-duplication as above
-    if (distinct.size() == 1) {
-        log.warn "No ${label} at replicate for '${group}' — falling back to '${distinct[0].control_group}' (longest shared sample_group prefix, different replicate). Set --fuzzy_untreated_pairing false to require exact matches."
-        return [ group, distinct[0].rc ]
+    if (closest.size() == 1) {
+        log.warn "No ${label} at replicate for '${group}' — falling back to '${closest[0].control_group}' (longest shared sample_group prefix, different replicate). Set --fuzzy_untreated_pairing false to require exact matches."
+        return [ group, closest[0].rc ]
     }
-    log.warn "No ${label} for '${group}': ${distinct.collect { c -> c.control_group }.sort().join(', ')} are equally close at other replicates, so none is used."
+    log.warn "No ${label} for '${group}': ${closest.collect { c -> c.control_group }.sort().join(', ')} are equally close at other replicates, so none is used."
     return [ group, null ]
 }
 

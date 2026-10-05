@@ -509,6 +509,45 @@ nextflow_workflow {
         }
     }
 
+    test("Fails rf-norm when a group has more than one untreated sample") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir = "$outputDir"
+                fasta  = "$projectDir/tests/data/Homo_sapiens.GRCh38.ENST00000389680.fa"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'hek_treated_rep1', sample_id:'hek_treated_rep1', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'hek293T', replicate:'rep1', condition:'treated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333256.R1.HEK293T_treated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'hek_untreated_a', sample_id:'hek_untreated_a', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'hek293T', replicate:'rep1', condition:'untreated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'hek_untreated_b', sample_id:'hek_untreated_b', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'hek293T', replicate:'rep1', condition:'untreated' ],
+                        [ file("\${projectDir}/tests/data/GSM4333255.R1.HEK293T_untreated_r1.trim.top1.fastq.gz", checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert !workflow.success },
+                { assert workflow.errorMessage.contains("more than one untreated sample") },
+                { assert workflow.errorMessage.contains("hek_untreated_a, hek_untreated_b") }
+            )
+        }
+    }
+
     test("Fails rf-norm when denatured lacks matching treated and untreated samples") {
 
         options "-stub"

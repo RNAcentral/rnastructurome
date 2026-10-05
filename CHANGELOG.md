@@ -15,11 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Changed`
 
-- Fuzzy control pairing (`--fuzzy_untreated_pairing`) now picks the untreated or denatured control whose `sample_group` shares the longest leading token prefix with the treated group, rather than matching on the first token only, so each arm of a design such as `HFF_uninfected` / `HFF_HCMV_05hpi` / `HFF_HCMV_72hpi` gets its own control instead of aborting as ambiguous. A lone control is reused across an arm's replicates, denatured controls are resolved the same way, and a group holding several runs (amplicon pools, genome segments) is no longer counted as a tie.
+- Fuzzy control pairing (`--fuzzy_untreated_pairing`) now picks the untreated or denatured control whose `sample_group` shares the longest leading token prefix with the treated group, rather than matching on the first token only, so each arm of a design such as `HFF_uninfected` / `HFF_HCMV_05hpi` / `HFF_HCMV_72hpi` gets its own control instead of aborting as ambiguous. A lone control is reused across an arm's replicates, and denatured controls are resolved the same way.
 - `rf-count` now counts only the references that have alignments, instead of running one `samtools view` per FASTA entry; whole-transcriptome runs (~250k human transcripts) previously never finished. RC files therefore list only covered references. The `codon` profile now gives the genome-route `rf-count` task the same resources as the transcriptome-route one.
 
 ### `Fixed`
 
+- A `sample_group`/`replicate` group with more than one untreated or denatured sample now stops with a clear error instead of crashing; give runs of the same control the same sample name so they are concatenated.
 - `rf-count` no longer dies with "Unable to extract" when any of the first BAM records lacks an MD tag (an unmapped mate is enough): it now receives a mapped-only, MD-tagged, indexed BAM.
 - `rf-count` no longer hangs at 100% CPU on references containing IUPAC ambiguity codes (e.g. `Y`, `R`); these are masked to `N` before counting, so those positions report no reactivity.
 - R2DT no longer fails on a missing `.command.env` when no sequences are extracted for drawing.

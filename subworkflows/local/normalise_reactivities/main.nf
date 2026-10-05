@@ -78,6 +78,12 @@ workflow NORMALISE_REACTIVITIES {
                     .collect { entry -> "${entry.meta.id} (${entry.condition})" }.sort().join(', ')
                 error("rf-norm requires a treated sample for denatured controls in sample_group/replicate group '${group}'. Invalid samples: ${offending}")
             }
+            ['untreated', 'denatured'].each { control ->
+                def ids = entries.findAll { entry -> entry.condition == control }.collect { entry -> entry.meta.id }.sort()
+                if (ids.size() > 1) {
+                    error("Group '${group}' has more than one ${control} sample: ${ids.join(', ')}. Give runs of the same control the same sample name so they are concatenated.")
+                }
+            }
             // Always use the treated sample's meta so principle drives scoring-method selection correctly.
             [ group, entries.find { entry -> entry.condition == 'treated' }.meta ]
         }
