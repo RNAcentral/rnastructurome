@@ -497,10 +497,12 @@ def parseFlagstatMappedReads(flagstatFile) {
     (mappedLine.tokenize()[0]) as long
 }
 
-// A reference FASTA under 1 MB is a viral genome (or a hand-picked transcript set): the --rnacentral
-// gate judges those on read depth rather than mapped %, which for virion preps reflects the host RNA carried over.
+// A reference FASTA under 1 MB with at most 12 records (the most segments an RNA virus genome has) is a viral
+// genome: the --rnacentral gate judges those on read depth rather than mapped %, which for virion preps reflects
+// the host RNA carried over. Many-record sets (e.g. E. coli ncRNAs) keep mapped %, as some records get no reads.
 def isSmallReference(meta, refMap) {
-    refMap[resolveReferenceKey(meta)][1].size() < 1_000_000
+    def fasta = refMap[resolveReferenceKey(meta)][1]
+    fasta.size() < 1_000_000 && fasta.readLines().count { line -> line.startsWith('>') } <= 12
 }
 
 // samtools coverage TSV: min meandepth over contigs, so every segment of a segmented genome must clear the gate.

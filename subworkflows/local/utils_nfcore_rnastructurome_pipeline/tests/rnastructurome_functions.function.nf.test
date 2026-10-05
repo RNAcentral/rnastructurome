@@ -186,6 +186,21 @@ nextflow_function {
         then { assert function.success; assert function.result == false }
     }
 
+    test("isSmallReference is false for a small FASTA of many transcripts") {
+        function "isSmallReference"
+        when {
+            function {
+                """
+                def transcripts = File.createTempFile('ecoli', '.fa')
+                transcripts.text = (1..328).collect { i -> ">URS\${i}_83333\\n" + ('ACGT' * 50) + '\\n' }.join('')
+                input[0] = [ id: 's1', organism: 'Escherichia coli' ]
+                input[1] = [ escherichia_coli: [ [:], transcripts ] ]
+                """
+            }
+        }
+        then { assert function.success; assert function.result == false }
+    }
+
     test("parseCoverageMinMeanDepth returns the least-covered contig of a segmented genome") {
         function "parseCoverageMinMeanDepth"
         when {
