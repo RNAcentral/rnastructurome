@@ -26,7 +26,8 @@ idlen() { rf-rctools view "$1" | awk 'NF==0{l=0;next}{l++} l==1{id=$0} l==2{len=
 
 first=1
 for rc in "$@"; do
-    rf-rctools index "$rc" >/dev/null 2>&1 || true
+    # rf-rctools index silently skips a bare name starting with a digit (125ng.rc), so pass a path.
+    rf-rctools index "$(dirname "${rc}")/$(basename "${rc}")" >/dev/null
     # One view pass per file: capture id<TAB>len, then derive the id list from column 1.
     idlen "$rc" > idlen.txt
     cut -f1 idlen.txt > ids.txt

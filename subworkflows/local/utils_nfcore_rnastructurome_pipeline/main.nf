@@ -87,6 +87,10 @@ workflow PIPELINE_INITIALISATION {
         nextflow_cli_args
     )
 
+    if (params.cutadapt_discard_untrimmed && params.cutadapt_quality_only) {
+        error("--cutadapt_discard_untrimmed needs adapter trimming, so it cannot be combined with --cutadapt_quality_only (every read would be discarded).")
+    }
+
     // Create channel from input file provided through `input`
 
     def samplesheet_rows = samplesheetToList(input, "${projectDir}/assets/schema_input.json")
@@ -817,10 +821,34 @@ def renderRfNormSummary(sampleMetadata) {
     ]
 }
 
-// Returns the base sample_group identifier (portion before the first underscore), e.g.
-// "MDA-MB-231_MTX" → "MDA-MB-231". Used by fuzzy untreated-pairing to match a shared root.
-def sampleGroupBaseToken(String sample_group) {
-    sample_group.tokenize('_')[0]
+// Leading `_` tokens two sample_groups share: HFF_infected_HCMV_05hpi vs HFF_infected_HCMV_72hpi → 3.
+def sharedGroupPrefixLength(String a, String b) {
+    // transpose() stops at the shorter list, so no mismatch means one is a prefix of the other.
+    def pairs    = [ a.tokenize('_'), b.tokenize('_') ].transpose()
+    def mismatch = pairs.findIndexOf { pair -> pair[0] != pair[1] }
+    return mismatch < 0 ? pairs.size() : mismatch
+}
+
+// A tie at the same replicate is fatal: guessing would silently change the normalisation.
+def selectClosestControl(String label, String group, List candidates) {
+    def bestPrefix = candidates.collect { c -> c.prefix }.max()
+    def closest    = candidates.findAll { c -> c.prefix == bestPrefix }
+
+    def sameRep = closest.findAll { c -> c.same_replicate }
+    if (sameRep.size() > 1) {
+        error("Ambiguous ${label} fallback for '${group}': multiple ${label} groups share the same sample_group prefix and replicate: ${sameRep.collect { c -> c.control_group }.sort().join(', ')}. Use --fuzzy_untreated_pairing false to disable fuzzy matching.")
+    }
+    if (sameRep.size() == 1) {
+        log.warn "No exact ${label} match for '${group}' — falling back to '${sameRep[0].control_group}' (longest shared sample_group prefix, same replicate). Set --fuzzy_untreated_pairing false to require exact matches."
+        return [ group, sameRep[0].rc ]
+    }
+
+    if (closest.size() == 1) {
+        log.warn "No ${label} at replicate for '${group}' — falling back to '${closest[0].control_group}' (longest shared sample_group prefix, different replicate). Set --fuzzy_untreated_pairing false to require exact matches."
+        return [ group, closest[0].rc ]
+    }
+    log.warn "No ${label} for '${group}': ${closest.collect { c -> c.control_group }.sort().join(', ')} are equally close at other replicates, so none is used."
+    return [ group, null ]
 }
 
 def resolveRfNormScoreMethod(principle, hasUntreated) {
@@ -844,8 +872,8 @@ def resolveRfNormNormMethod(scoringMethod) {
     }
 
     def requestedMethod = params.rfnorm_norm_method as Integer
-    if (!(requestedMethod in [2, 3, 4])) {
-        error("Unsupported rf-norm normalization method '${params.rfnorm_norm_method}'. Expected one of: 2, 3, 4.")
+    if (!(requestedMethod in [1, 2, 3, 4])) {
+        error("Unsupported rf-norm normalization method '${params.rfnorm_norm_method}'. Expected one of: 1, 2, 3, 4.")
     }
 
     requestedMethod
