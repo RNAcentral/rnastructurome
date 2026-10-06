@@ -226,7 +226,10 @@ nextflow_workflow {
                 { assert workflow.out.normalized_xml.size() == 2 },
                 { assert workflow.out.normalized_xml.collect { entry -> entry[0].id }.toSet() == ['hek293T_rep1', 'hek293T_rep2'] as Set },
                 { assert workflow.out.normalized_xml.collect { entry -> entry[0].rfnorm_scoring_method }.toSet() == [1] as Set },
-                { assert workflow.out.normalized_xml.collect { entry -> entry[0].rfnorm_norm_method }.toSet() == [3] as Set }
+                { assert workflow.out.normalized_xml.collect { entry -> entry[0].rfnorm_norm_method }.toSet() == [3] as Set },
+                // Rows follow sample name, not the order the rf-count tasks happened to finish.
+                { assert path("${outputDir}/count/rfcount_summary_all_samples.tsv").readLines().drop(1).collect { line -> line.split('\t')[0] } ==
+                    ['hek_treated_rep1', 'hek_treated_rep2', 'hek_untreated_rep1', 'hek_untreated_rep2'] }
             )
         }
     }
@@ -650,6 +653,111 @@ nextflow_workflow {
                 { assert !workflow.success },
                 { assert workflow.errorMessage.contains("rf-norm requires a treated sample for denatured controls") },
                 { assert workflow.errorMessage.contains("hek_denatured_rep1 (denatured)") }
+            )
+        }
+    }
+
+    test("Runs with cross-experiment rf-normfactor normalisation enabled") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir                = "$outputDir"
+                fasta                 = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                gtf                   = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
+                rfnorm_use_normfactor = true
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'main_rtstop', sample_id:'main_rtstop', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // rf-normfactor only runs when --rfnorm_use_normfactor is set; its presence in the
+                // collated versions confirms the cross-experiment branch executed.
+                { assert path("${outputDir}/pipeline_info/nf_core_rnastructurome_software_mqc_versions.yml").text.contains('RNAFRAMEWORK_RFNORMFACTOR') }
+            )
+        }
+    }
+
+    test("Runs with rf-structextract motif extraction enabled") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir        = "$outputDir"
+                fasta         = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                gtf           = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
+                structextract = true
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'main_rtstop', sample_id:'main_rtstop', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // rf-structextract only runs when --structextract is set; its presence in the
+                // collated versions confirms the motif-extraction branch executed.
+                { assert path("${outputDir}/pipeline_info/nf_core_rnastructurome_software_mqc_versions.yml").text.contains('RNAFRAMEWORK_RFSTRUCTEXTRACT') }
+            )
+        }
+    }
+
+    test("Runs rf-correlate replicate QC for a multi-replicate sample group") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir = "$outputDir"
+                fasta  = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
+                gtf    = "$projectDir/modules/local/ensembl/gtf/tests/fixtures/ensembl/pub/current_gtf/homo_sapiens/Homo_sapiens.test.115.gtf.gz"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'main_rtstop_r1', sample_id:'main_rtstop_r1', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep1', condition:'treated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'main_rtstop_r2', sample_id:'main_rtstop_r2', principle:'RT-stop', organism:'Homo sapiens', single_end:true, sample_group:'main_line', replicate:'rep2', condition:'treated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // rf-correlate only runs for sample groups with >1 replicate; its presence in the
+                // collated versions confirms the replicate-QC branch executed.
+                { assert path("${outputDir}/pipeline_info/nf_core_rnastructurome_software_mqc_versions.yml").text.contains('RNAFRAMEWORK_RFCORRELATE') }
             )
         }
     }

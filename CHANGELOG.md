@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - R2DT no longer fails on a missing `.command.env` when no sequences are extracted for drawing.
 - `--rfnorm_norm_method 1` (2-8% normalisation) is accepted again; the launch guard and schema rejected it while `docs/usage.md` documented it.
 - The rf-fold flag letters quoted in the `nextflow_schema.json` descriptions of `rffold_unconstrained`, `rffold_vienna_no_lonely_pairs`, `rffold_vienna_constrained`, `rffold_vienna_max_bp_span`, `rffold_fold_constraint_file` and `rffold_dotplot` now match what the pipeline passes (`-i`, `-nlp`, `-hc`, `-md`, `-c`, `-dp`).
+- `.bp` arc files list base pairs sorted by position instead of in rf-fold's arbitrary dot-plot order, so reruns give identical files.
+- `count/rfcount_summary_all_samples.tsv` lists samples in name order instead of the order their `rf-count` tasks finished, so reruns give identical files.
 - `rf-normfactor` no longer silently drops RC files whose sample name starts with a digit (e.g. `125ng_r1.rc`): `rf-rctools index` numifies such a bare filename into an argument index, so the file is now passed with a directory prefix.
 
 ### `Removed`
