@@ -117,17 +117,10 @@ process RNAFRAMEWORK_RFFOLD {
     mv "\${cleaned_log}" ${prefix}_fold/rffold.log
     rm -f "\${log_tmp}"
 
-    if [[ -s ${prefix}_fold/error.out ]]; then
-        exception_count=\$(grep -Fc "[!] Exception" ${prefix}_fold/error.out || true)
-        rnaplot_count=\$(grep -Fc "Unable to open RNAplot" ${prefix}_fold/error.out || true)
-        if [[ \$exception_count -gt 0 && \$exception_count -ne \$rnaplot_count ]]; then
-            echo "[RNAFRAMEWORK_RFFOLD] rf-fold reported errors:" >&2
-            cat ${prefix}_fold/error.out >&2
-            exit 1
-        elif [[ \$exception_count -gt 0 ]]; then
-            echo "[RNAFRAMEWORK_RFFOLD] rf-fold reported RNAplot warnings (non-fatal):" >&2
-            cat ${prefix}_fold/error.out >&2
-        fi
+    if [[ -s ${prefix}_fold/error.out ]] && grep -Fq "[!] Exception" ${prefix}_fold/error.out; then
+        echo "[RNAFRAMEWORK_RFFOLD] rf-fold reported errors:" >&2
+        cat ${prefix}_fold/error.out >&2
+        exit 1
     fi
 
     if [[ ! -d ${prefix}_fold/structures ]] || ! find ${prefix}_fold/structures -type f -print -quit | grep -q .; then

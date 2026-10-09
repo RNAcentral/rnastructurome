@@ -30,14 +30,9 @@ process RNAFRAMEWORK_RFCOUNT {
     // which rf-count table layout to expect (MaP has a Mutated-alignments column; RT-stop does not).
     def is_map = ((meta.principle ?: '').toLowerCase() == 'map') ? '1' : '0'
     """
-    # rf-count 2.9.7 hangs on ambiguity codes and fails without MD tags: mask to N, pre-run calmd.
-    sed '/^>/!s/[RYKMSWBDHVrykmswbdhv]/N/g' "${fasta}" > ref.fa
-    samtools view -@ ${task.cpus} -b -F 4 "${bam}" | samtools calmd -@ ${task.cpus} -b - ref.fa > mapped.bam
-    samtools index -@ ${task.cpus} mapped.bam
-
     # rf-count runs samtools once per FASTA entry, so keep only references with reads.
-    samtools idxstats mapped.bam | awk '\$3 > 0 { print \$1 }' > covered_refs.txt
-    awk 'NR == FNR { keep[\$1]; next } /^>/ { p = (substr(\$1, 2) in keep) } p' covered_refs.txt ref.fa > covered.fa
+    samtools idxstats "${bam}" | awk '\$3 > 0 { print \$1 }' > covered_refs.txt
+    awk 'NR == FNR { keep[\$1]; next } /^>/ { p = (substr(\$1, 2) in keep) } p' covered_refs.txt "${fasta}" > covered.fa
     FASTA_PATH="covered.fa"
 
     export TERM="\${TERM:-xterm}"
@@ -55,7 +50,7 @@ process RNAFRAMEWORK_RFCOUNT {
         -o ${outdir} \\
         -ow \\
         ${args} \\
-        "${prefix}:mapped.bam" 2>&1 | tee "\${rfcount_log_tmp}"
+        "${prefix}:${bam}" 2>&1 | tee "\${rfcount_log_tmp}"
     pipeline_statuses=( "\${PIPESTATUS[@]}" )
     rfcount_status="\${pipeline_statuses[0]}"
     tee_status="\${pipeline_statuses[1]}"

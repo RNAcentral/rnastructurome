@@ -909,7 +909,7 @@
                 },
                 "rffold_vienna_rnaplot": {
                     "type": "string",
-                    "description": "Path to ViennaRNA `RNAplot` binary for SVG structure plots in rf-fold (`-vrp`).",
+                    "description": "Path to ViennaRNA `RNAplot` binary for the ViennaRNA and rf-structextract SVG structure plots.",
                     "default": "RNAplot"
                 },
                 "r2dt": {

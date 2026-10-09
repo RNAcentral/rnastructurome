@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Changed`
 
+- RNA Framework updated from 2.9.7 to 2.9.8. `rf-fold` now draws its SVG structure plots itself, so the pipeline no longer passes it `-vrp` (`--rffold_vienna_rnaplot` still sets `RNAplot` for the ViennaRNA and `rf-structextract` plots).
 - Fuzzy control pairing (`--fuzzy_untreated_pairing`) now picks the untreated or denatured control whose `sample_group` shares the longest leading token prefix with the treated group, rather than matching on the first token only, so each arm of a design such as `HFF_uninfected` / `HFF_HCMV_05hpi` / `HFF_HCMV_72hpi` gets its own control instead of aborting as ambiguous. A lone control is reused across an arm's replicates, and denatured controls are resolved the same way.
 - `rf-count` now counts only the references that have alignments, instead of running one `samtools view` per FASTA entry; whole-transcriptome runs (~250k human transcripts) previously never finished. RC files therefore list only covered references. The `codon` profile now gives the genome-route `rf-count` task the same resources as the transcriptome-route one.
 
@@ -23,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fuzzy control pairing only borrows a control from the same reference, so samples from different organisms can no longer pair.
 - A `sample_group`/`replicate` group whose samples come from different organisms now stops with an error instead of pairing them.
 - A `sample_group`/`replicate` group with more than one untreated or denatured sample now stops with a clear error instead of crashing; give runs of the same control the same sample name so they are concatenated.
-- `rf-count` no longer dies with "Unable to extract" when any of the first BAM records lacks an MD tag (an unmapped mate is enough): it now receives a mapped-only, MD-tagged, indexed BAM.
-- `rf-count` no longer hangs at 100% CPU on references containing IUPAC ambiguity codes (e.g. `Y`, `R`); these are masked to `N` before counting, so those positions report no reactivity.
+- `rf-count` no longer dies with "Unable to extract" when any of the first BAM records lacks an MD tag (an unmapped mate is enough), fixed upstream in RNA Framework 2.9.8 ([#98](https://github.com/dincarnato/RNAFramework/issues/98)).
+- `rf-count` no longer hangs at 100% CPU on references containing IUPAC ambiguity codes (e.g. `Y`, `R`); RNA Framework 2.9.8 reads them as `N`, so those positions report no reactivity ([#99](https://github.com/dincarnato/RNAFramework/issues/99)).
 - R2DT no longer fails on a missing `.command.env` when no sequences are extracted for drawing.
 - `--rfnorm_norm_method 1` (2-8% normalisation) is accepted again; the launch guard and schema rejected it while `docs/usage.md` documented it.
 - The rf-fold flag letters quoted in the `nextflow_schema.json` descriptions of `rffold_unconstrained`, `rffold_vienna_no_lonely_pairs`, `rffold_vienna_constrained`, `rffold_vienna_max_bp_span`, `rffold_fold_constraint_file` and `rffold_dotplot` now match what the pipeline passes (`-i`, `-nlp`, `-hc`, `-md`, `-c`, `-dp`).
