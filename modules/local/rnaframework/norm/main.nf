@@ -36,7 +36,12 @@ process RNAFRAMEWORK_RFNORM {
     nf_key_name="${nfKeyName}"
     if [[ -n "\${nf_key_name}" && -s "${norm_factor}" ]]; then
         nf_key="\${nf_key_name%.rc}"
-        nf_value="\$(awk -v k="\${nf_key}" '\$1 == k { print \$2; exit }' "${norm_factor}")"
+        if [[ "${meta.four_base_dms ? 'true' : 'false'}" == "true" ]]; then
+            # rf-normfactor -ni writes one column per base; rf-norm takes "A:x,C:y", skipping NaN bases.
+            nf_value="\$(awk -F'\\t' -v k="\${nf_key}" 'NR == 1 { for (i = 2; i <= NF; i++) h[i] = \$i; next } \$1 == k { for (i = 2; i <= NF; i++) if (\$i != "NaN") s = s (s == "" ? "" : ",") h[i] ":" \$i; print s; exit }' "${norm_factor}")"
+        else
+            nf_value="\$(awk -v k="\${nf_key}" '\$1 == k { print \$2; exit }' "${norm_factor}")"
+        fi
         if [[ -n "\${nf_value}" ]]; then
             norm_factor_arg="-nf \${nf_value}"
         else

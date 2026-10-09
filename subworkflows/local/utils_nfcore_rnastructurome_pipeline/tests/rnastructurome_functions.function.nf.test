@@ -39,6 +39,42 @@ nextflow_function {
         then { assert function.success; assert function.result == 1 }
     }
 
+    test("isFourBaseDms is on for DMS-MaP at pH 8") {
+        function "isFourBaseDms"
+        when {
+            params { four_base_dms = true }
+            function { """ input[0] = [ principle: 'MaP', method: 'DMS', pH: 8.0 ] """ }
+        }
+        then { assert function.success; assert function.result == true }
+    }
+
+    test("isFourBaseDms is off below pH 8") {
+        function "isFourBaseDms"
+        when {
+            params { four_base_dms = true }
+            function { """ input[0] = [ principle: 'MaP', method: 'DMS', pH: 7.5 ] """ }
+        }
+        then { assert function.success; assert function.result == false }
+    }
+
+    test("isFourBaseDms is off for RT-stop DMS") {
+        function "isFourBaseDms"
+        when {
+            params { four_base_dms = true }
+            function { """ input[0] = [ principle: 'RT-stop', method: 'DMS', pH: 8.0 ] """ }
+        }
+        then { assert function.success; assert function.result == false }
+    }
+
+    test("isFourBaseDms is off with --four_base_dms false") {
+        function "isFourBaseDms"
+        when {
+            params { four_base_dms = false }
+            function { """ input[0] = [ principle: 'MaP', method: 'DMS', pH: 8.0 ] """ }
+        }
+        then { assert function.success; assert function.result == false }
+    }
+
     test("resolveRfNormScoreMethod defaults by principle and untreated control") {
         function "resolveRfNormScoreMethod"
         when { function { """ input[0] = 'rt-stop'; input[1] = true """ } }

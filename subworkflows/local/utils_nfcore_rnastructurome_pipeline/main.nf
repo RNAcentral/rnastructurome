@@ -785,9 +785,10 @@ def renderRfNormSummary(sampleMetadata) {
     def hasUntreated = conditions.contains('untreated')
     def hasDenatured = conditions.contains('denatured')
     def scoringMethod = resolveRfNormScoreMethod(principle, hasUntreated)
-    def normMethod = resolveRfNormNormMethod(scoringMethod)
     def isDmsOnly = ((sampleMetadata.methods ?: []).collect { method -> method.toLowerCase() }.unique()) == ['dms']
     def isDmsBroad = isDmsOnly && sampleMetadata.pH != null && (sampleMetadata.pH as Double) >= 8.0
+    def fourBaseDms = isFourBaseDms([ principle: principle, method: isDmsOnly ? 'dms' : '', pH: sampleMetadata.pH ])
+    def normMethod = fourBaseDms ? 4 : resolveRfNormNormMethod(scoringMethod)
     def reactiveBases = params.rfnorm_reactive_bases ?: (isDmsOnly ? (isDmsBroad ? 'ACGU' : 'AC') : null)
     def dynamicWindow = params.rfnorm_dynamic_window != null ? (params.rfnorm_dynamic_window as Integer) : (isDmsOnly && !isDmsBroad ? 50 : null)
 
@@ -796,6 +797,7 @@ def renderRfNormSummary(sampleMetadata) {
         "-nm ${normMethod}"
     ]
     if (params.rfnorm_remap_reactivities as Boolean) args << '--remap-reactivities'
+    if (fourBaseDms) args << '-4d'
     if (reactiveBases) args << "--reactive-bases ${reactiveBases}"
     if (params.rfnorm_norm_window != null) args << "--norm-window ${params.rfnorm_norm_window as Integer}"
     if (params.rfnorm_window_offset != null) args << "--window-offset ${params.rfnorm_window_offset as Integer}"
@@ -863,6 +865,14 @@ def resolveRfNormScoreMethod(principle, hasUntreated) {
     }
 
     requestedMethod
+}
+
+// Four-base DMS reads N1-G out as G->C/G->T, which needs alkaline DMS-MaP (Mitchell et al., 2023).
+def isFourBaseDms(meta) {
+    (params.four_base_dms as Boolean) &&
+        (meta.principle ?: '').toLowerCase() == 'map' &&
+        (meta.method ?: '').toLowerCase() == 'dms' &&
+        meta.pH && (meta.pH as Double) >= 8.0
 }
 
 def resolveRfNormNormMethod(scoringMethod) {

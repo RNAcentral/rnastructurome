@@ -9,6 +9,7 @@ include {
     resolveRfNormScoreMethod
     resolveRfNormNormMethod
     resolveReferenceKey
+    isFourBaseDms
 } from '../utils_nfcore_rnastructurome_pipeline/main'
 
 workflow NORMALISE_REACTIVITIES {
@@ -183,13 +184,15 @@ workflow NORMALISE_REACTIVITIES {
             }
             def principle     = (base_meta.principle ?: '').toLowerCase()
             def scoringMethod = resolveRfNormScoreMethod(principle, hasUntreated)
-            def normMethod = resolveRfNormNormMethod(scoringMethod)
+            def fourBaseDms   = isFourBaseDms(base_meta)
+            def normMethod = fourBaseDms ? 4 : resolveRfNormNormMethod(scoringMethod)
             def gmeta = base_meta + [
                 id                    : group,
                 rfnorm_has_untreated  : hasUntreated,
                 rfnorm_has_denatured  : hasDenatured,
                 rfnorm_scoring_method : scoringMethod,
-                rfnorm_norm_method    : normMethod
+                rfnorm_norm_method    : normMethod,
+                four_base_dms         : fourBaseDms
             ]
             [ gmeta, treated_rcs, untreated_rc ?: [], denatured_rc ?: [], rci_files ?: [] ]
         }
@@ -251,7 +254,8 @@ workflow NORMALISE_REACTIVITIES {
                 def denatured_list = denatured_all.every { d -> d } ? denatured_all : []
                 def principle      = (base_meta.principle ?: '').toLowerCase()
                 def scoringMethod  = resolveRfNormScoreMethod(principle, hasUntreated)
-                def normMethod = resolveRfNormNormMethod(scoringMethod)
+                def fourBaseDms    = isFourBaseDms(base_meta)
+                def normMethod = fourBaseDms ? 4 : resolveRfNormNormMethod(scoringMethod)
                 // Fuzzy pairing can resolve several treated samples to the SAME untreated/denatured control,
                 // so the positional order (with repeats) needed for -t/-u/-d is carried as names in meta,
                 // while the files themselves are staged deduplicated by name.
@@ -260,6 +264,7 @@ workflow NORMALISE_REACTIVITIES {
                     id                    : ref,
                     rfnorm_scoring_method : scoringMethod,
                     rfnorm_norm_method    : normMethod,
+                    four_base_dms         : fourBaseDms,
                     nf_treated_order      : treated_list.collect    { f -> f.name },
                     nf_untreated_order    : untreated_order.collect  { f -> f.name },
                     nf_denatured_order    : denatured_list.collect   { f -> f.name }

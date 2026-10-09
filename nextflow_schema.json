@@ -518,6 +518,11 @@
                     "description": "Normalize each reactive base independently (`--norm-independent`).",
                     "default": false
                 },
+                "four_base_dms": {
+                    "type": "boolean",
+                    "description": "Four-base DMS analysis (Mitchell et al., 2023) for DMS-MaP samples at pH >= 8: rf-count keeps only G->C/G->T mutations on G and drops indels (`-om H2N,G2Y -ncl`), and rf-norm normalises each base separately over the whole transcript (`-4d`).",
+                    "default": true
+                },
                 "rfnorm_use_normfactor": {
                     "type": "boolean",
                     "description": "Cross-experiment normalization via rf-normfactor (one factor set per reference, fed to rf-norm via `-nf`), putting reactivities on a common scale. Leave unset for auto (enabled only for a reference with more than one treated sample to cross-normalise); set `true` to force on, `false` to force off (per-sample box-plot)."
