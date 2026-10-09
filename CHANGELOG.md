@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
+- `--rffold_use_alifold` (default `true`) folds the replicates of a multi-replicate group together with RNAalifold (`rf-fold -ua`, new in RNA Framework 2.9.8), giving one consensus structure constrained by all their reactivity profiles; set it to `false` for the previous per-replicate RNAfold folding.
 - `--cutadapt_nextseq_trim` passes Cutadapt `--nextseq-trim` with the given 3′ quality cutoff, stripping the high-quality poly-G tails that 2-colour (NextSeq/NovaSeq) chemistry leaves behind and quality trimming misses.
 - `--cutadapt_discard_untrimmed` drops reads in which no adapter was found, for short-insert libraries (e.g. tRNA, miRNA) where every genuine read runs into the adapter. It cannot be combined with `--cutadapt_quality_only`.
 - `--rfcount_map_max_coverage` passes rf-count's `--max-coverage` for MaP samples, downsampling each transcript above the cap (minimum `1000`), so a transcript at extreme depth (e.g. a viral genome at ~10<sup>6</sup>×) counts in hours rather than days. Off by default. Ignored with `--count_genome true`.

@@ -883,6 +883,11 @@
                     "minimum": 1,
                     "description": "Only fold transcripts covered in at least this number of XML experiments (`-oc`)."
                 },
+                "rffold_use_alifold": {
+                    "type": "boolean",
+                    "description": "Fold a group's replicates together with RNAalifold, constrained by all their reactivity profiles at once, instead of folding each with RNAfold and aggregating base pairs (`-ua`). Applies only to groups with more than one replicate.",
+                    "default": true
+                },
                 "rffold_fold_constraint_file": {
                     "type": "string",
                     "format": "file-path",
