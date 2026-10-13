@@ -44,23 +44,23 @@
                     "python": "3.12.12"
                 },
                 "RNAFRAMEWORK_RFCOUNT": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFEVAL": {
-                    "python": "3.13.15",
-                    "rnaframework": "2.9.7"
+                    "python": "3.13.16",
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFFOLD": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFJACKKNIFE": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFNORM": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFWIGGLE": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_TORDAT": {
                     "python": "3.12.12"
@@ -209,7 +209,7 @@
                 "16S_rRNA.bp:md5,48504ffbcf4e842bb971750d9fe8f88e",
                 "16S_rRNA.rdat:md5,abda3d04359822fb3bd8c71f8b09a816",
                 "rffold.log:md5,0aaa33c23d2c3bc29c01833d51704c98",
-                "16S_rRNA.wig:md5,f88718c4cb4d205de2634c59152aacbd",
+                "16S_rRNA.wig:md5,acc6dac4dfbee2c2c0acf7cde942d04a",
                 "E_coli_DH5a_genome.bp:md5,48504ffbcf4e842bb971750d9fe8f88e",
                 "E_coli_DH5a_shannon_genome.bw:md5,41db769662c288f6da624bb2ae7cbeb3",
                 "E_coli_DH5a_shannon_transcript.bw:md5,c41c16f6d878a24a6e692894a872a928",
@@ -218,7 +218,7 @@
                 "rfjackknife.log:md5,8ebe5fccd6b78c01cdea4accb06f71b0",
                 "rfnorm.log:md5,d07972954e376c332c617f9af834ca27",
                 "E_coli_DH5a_1.wig:md5,838f69de098394d6986531bde8d7055d",
-                "16S_rRNA.xml:md5,ef403042848fe439305a8303d27befd3",
+                "16S_rRNA.xml:md5,55963e74eec24e83e6fcdd2e13af2fd3",
                 "E_coli_DH5a_reactivity_genome.bw:md5,daad4381dda93cb64d9ba39bdb8b6767",
                 "E_coli_DH5a_reactivity_transcript.bw:md5,4caafeef97edb71d1e8d7bd0fa6b0a81",
                 "E_coli_DH5a_treated.flagstat:md5,3ae0d61d9a97aec743936fa246db76db",
@@ -226,7 +226,7 @@
                 "E_coli_DH5a_treated.stats:md5,d8a11c6fbd7f5446f3376a08cc917e1e"
             ]
         ],
-        "timestamp": "2026-10-06T12:32:07.748889",
+        "timestamp": "2026-10-13T10:34:07.450368",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"

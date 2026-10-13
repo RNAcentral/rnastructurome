@@ -44,19 +44,19 @@
                     "python": "3.12.12"
                 },
                 "RNAFRAMEWORK_RFCOUNT": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFFOLD": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFNORM": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFSTRUCTEXTRACT": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFWIGGLE": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_TORDAT": {
                     "python": "3.12.12"
@@ -233,14 +233,14 @@
                 "ENST00000389680.2_484-951_ss.svg:md5,7c52a30f614a9db52290e1965023f0ee",
                 "ENST00000389680.2.rdat:md5,0fa0d88653a60e0f58742cf02e36b79e",
                 "rffold.log:md5,0aaa33c23d2c3bc29c01833d51704c98",
-                "ENST00000389680.2.wig:md5,56abec44c6d8ccaf8a9e5ef1d789e5ca",
+                "ENST00000389680.2.wig:md5,8576f2714c6d63f03ead920fd4b6c5d5",
                 "HEK293T_genome.bp:md5,c25975e4ec67317bb88c0774f56666c2",
                 "HEK293T_shannon_genome.bw:md5,a7043be1f485d89e6639cb0d3b7562aa",
                 "HEK293T_shannon_transcript.bw:md5,741e0bbb0ab35ed933071fd087a8a3de",
                 "HEK293T_transcript.bp:md5,1a95f077fc5b0646e51ba9b0d43400d7",
                 "rfnorm.log:md5,d20f65f28667e5ac44d38db9b40e3581",
                 "HEK293T_1.wig:md5,46beeb1d5f23503426369819988a56fa",
-                "ENST00000389680.2.xml:md5,5e2a942ccec92a66b75951cf8c465e8d",
+                "ENST00000389680.2.xml:md5,2d658aca89e108ae438d0c5e97de050a",
                 "HEK293T_reactivity_genome.bw:md5,64e6892cb319b73d984eea2068239af5",
                 "HEK293T_reactivity_transcript.bw:md5,b2485481e2a71ce8ba85d08aeed76695",
                 "HEK293T_treated_r1.flagstat:md5,dde964b625e668271a6435c73e7a3b0a",
@@ -251,7 +251,7 @@
                 "HEK293T_untreated_r1.stats:md5,cb0bd4e06f296b34f9b871a6c39c4072"
             ]
         ],
-        "timestamp": "2026-10-06T12:33:47.828764",
+        "timestamp": "2026-10-13T10:35:58.460052",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"

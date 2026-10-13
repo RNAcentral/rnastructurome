@@ -39,19 +39,19 @@
                     "python": "3.12.12"
                 },
                 "RNAFRAMEWORK_RFCOUNT_GENOME": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFFOLD": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFNORM": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFRCTOOLS_EXTRACT": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_RFWIGGLE": {
-                    "rnaframework": "2.9.7"
+                    "rnaframework": "2.9.8"
                 },
                 "RNAFRAMEWORK_TORDAT": {
                     "python": "3.12.12"
@@ -251,14 +251,14 @@
                 "ENST00000389680.bp:md5,25da0904f44726108e91752cf01991cc",
                 "ENST00000389680.rdat:md5,08f6f0bad14d24a51be2d63ad90211ad",
                 "rffold.log:md5,0aaa33c23d2c3bc29c01833d51704c98",
-                "ENST00000389680.wig:md5,7e64cae6e0d48b5ee9293cd5be7a1da3",
+                "ENST00000389680.wig:md5,717d11c83a99243e1e9c0e56f9ee4f5a",
                 "HEK293T_genome.bp:md5,c25975e4ec67317bb88c0774f56666c2",
                 "HEK293T_shannon_genome.bw:md5,a7043be1f485d89e6639cb0d3b7562aa",
                 "HEK293T_shannon_transcript.bw:md5,cb0d9cd5a33f4e7986df829adb3d50bc",
                 "HEK293T_transcript.bp:md5,25da0904f44726108e91752cf01991cc",
                 "rfnorm.log:md5,d49c57428b6d2e361790774d81a25457",
                 "HEK293T_1.wig:md5,e5fb74fd4fae071bd0da41340451d749",
-                "ENST00000389680.xml:md5,e1b43777aa83c5b4088b15650bf1c8c6",
+                "ENST00000389680.xml:md5,1d188bb4842a19e9c2a4ccf626a06d0d",
                 "HEK293T_reactivity_genome.bw:md5,64e6892cb319b73d984eea2068239af5",
                 "HEK293T_reactivity_transcript.bw:md5,437c5d5803ef165850bfc74e9924a974",
                 "HEK293T_treated_r1.infer_experiment.txt:md5,4698d9a346e38272856ff8b57fff307b",
@@ -288,7 +288,7 @@
                 "transcriptInfo.tab:md5,6285462c2dbf3119d7bc24fc696b98be"
             ]
         ],
-        "timestamp": "2026-10-06T12:14:58.77178",
+        "timestamp": "2026-10-13T10:17:01.095261",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
