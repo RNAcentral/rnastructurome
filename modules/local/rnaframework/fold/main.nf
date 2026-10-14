@@ -139,8 +139,10 @@ process RNAFRAMEWORK_RFFOLD {
     """
 
     stub:
+    def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
     """
+    echo "${args}"
     mkdir -p ${prefix}_fold/dotbracket ${prefix}_fold/structures ${prefix}_fold/summaries ${prefix}_fold/shannon
     touch ${prefix}_fold/rffold.log ${prefix}_fold/dotbracket/example.db ${prefix}_fold/shannon/example.wig
 

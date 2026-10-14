@@ -88,8 +88,10 @@ process RNAFRAMEWORK_RFNORM {
     """
 
     stub:
+    def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
     """
+    echo "${args}"
     mkdir -p ${prefix}_norm
     mkdir -p ${prefix}_norm/plots
     touch ${prefix}_norm/${prefix}.xml

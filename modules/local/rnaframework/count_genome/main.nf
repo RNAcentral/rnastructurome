@@ -100,9 +100,11 @@ process RNAFRAMEWORK_RFCOUNT_GENOME {
     """
 
     stub:
+    def args   = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def outdir = "${prefix}_rfcount_genome"
     """
+    echo "${args}"
     mkdir -p ${outdir}
     touch ${outdir}/${prefix}.plus.rc
     touch ${outdir}/${prefix}.plus.rc.rci

@@ -82,8 +82,10 @@ process RNAFRAMEWORK_RFNORMFACTOR {
     """
 
     stub:
+    def args = task.ext.args ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
     """
+    echo "${args}"
     touch ${prefix}.norm_factors.txt
     touch ${prefix}.rfnormfactor.log
     """
