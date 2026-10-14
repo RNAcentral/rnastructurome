@@ -521,6 +521,7 @@
                 "four_base_dms": {
                     "type": "boolean",
                     "description": "Four-base DMS analysis (Mitchell et al., 2023) for DMS-MaP samples at pH >= 8: rf-count keeps only G->C/G->T mutations on G and drops indels (`-om H2N,G2Y -ncl`), and rf-norm normalises each base separately over the whole transcript (`-4d`).",
+                    "help_text": "Applies only to samples with `method` DMS, `principle` MaP and `pH` 8 or above. On by default, so these samples get different reactivities than in previous releases; set to `false` for the previous analysis.",
                     "default": true
                 },
                 "rfnorm_use_normfactor": {
