@@ -84,6 +84,24 @@ nextflow_function {
         then { assert function.success; assert function.result == false }
     }
 
+    test("isFourBaseDms is off without a pH") {
+        function "isFourBaseDms"
+        when {
+            params { four_base_dms = true }
+            function { """ input[0] = [ principle: 'MaP', method: 'DMS', pH: null ] """ }
+        }
+        then { assert function.success; assert function.result == false }
+    }
+
+    test("isFourBaseDms ignores the case of principle and method") {
+        function "isFourBaseDms"
+        when {
+            params { four_base_dms = true }
+            function { """ input[0] = [ principle: 'map', method: 'dms', pH: 8.0 ] """ }
+        }
+        then { assert function.success; assert function.result == true }
+    }
+
     test("isFourBaseDms is off with --four_base_dms false") {
         function "isFourBaseDms"
         when {
