@@ -57,6 +57,15 @@ nextflow_function {
         then { assert function.success; assert function.result.rfnorm_args.contains('-nm 4 ') }
     }
 
+    test("renderRfNormSummary rejects Ding or Rouskin scoring under four-base DMS") {
+        function "renderRfNormSummary"
+        when {
+            params { four_base_dms = true; rfnorm_score_method = 1 }
+            function { """ input[0] = [ principles: ['MaP'], conditions: ['treated', 'untreated'], methods: ['DMS'], pH: 8.0 ] """ }
+        }
+        then { assert function.failed }
+    }
+
     test("isFourBaseDms is on for DMS-MaP at pH 8") {
         function "isFourBaseDms"
         when {

@@ -795,6 +795,9 @@ def renderRfNormSummary(sampleMetadata) {
     def isDmsBroad = isDmsOnly && sampleMetadata.pH != null && (sampleMetadata.pH as Double) >= 8.0
     def fourBaseDms = isFourBaseDms([ principle: principle, method: isDmsOnly ? 'dms' : '', pH: sampleMetadata.pH ])
     def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
+    if (fourBaseDms && (scoringMethod as Integer) in [1, 2]) {
+        error("--rfnorm_score_method ${scoringMethod} cannot be used with four-base DMS, which requires Siegfried (3) or Zubradt (4) scoring. Set --four_base_dms false to use it.")
+    }
     if (fourBaseDms && params.rfnorm_norm_method != null && (params.rfnorm_norm_method as Integer) != 4) {
         log.warn "--rfnorm_norm_method ${params.rfnorm_norm_method} is ignored: four-base DMS requires Mitchell normalisation (4). Set --four_base_dms false to use another method."
     }
