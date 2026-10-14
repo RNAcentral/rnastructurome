@@ -185,7 +185,7 @@ workflow NORMALISE_REACTIVITIES {
             def principle     = (base_meta.principle ?: '').toLowerCase()
             def scoringMethod = resolveRfNormScoreMethod(principle, hasUntreated)
             def fourBaseDms   = isFourBaseDms(base_meta)
-            def normMethod = fourBaseDms ? 4 : resolveRfNormNormMethod(scoringMethod)
+            def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
             def gmeta = base_meta + [
                 id                    : group,
                 rfnorm_has_untreated  : hasUntreated,
@@ -255,7 +255,7 @@ workflow NORMALISE_REACTIVITIES {
                 def principle      = (base_meta.principle ?: '').toLowerCase()
                 def scoringMethod  = resolveRfNormScoreMethod(principle, hasUntreated)
                 def fourBaseDms    = isFourBaseDms(base_meta)
-                def normMethod = fourBaseDms ? 4 : resolveRfNormNormMethod(scoringMethod)
+                def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
                 // Fuzzy pairing can resolve several treated samples to the SAME untreated/denatured control,
                 // so the positional order (with repeats) needed for -t/-u/-d is carried as names in meta,
                 // while the files themselves are staged deduplicated by name.

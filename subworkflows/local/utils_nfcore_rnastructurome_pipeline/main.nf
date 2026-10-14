@@ -788,7 +788,7 @@ def renderRfNormSummary(sampleMetadata) {
     def isDmsOnly = ((sampleMetadata.methods ?: []).collect { method -> method.toLowerCase() }.unique()) == ['dms']
     def isDmsBroad = isDmsOnly && sampleMetadata.pH != null && (sampleMetadata.pH as Double) >= 8.0
     def fourBaseDms = isFourBaseDms([ principle: principle, method: isDmsOnly ? 'dms' : '', pH: sampleMetadata.pH ])
-    def normMethod = fourBaseDms ? 4 : resolveRfNormNormMethod(scoringMethod)
+    def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
     def reactiveBases = params.rfnorm_reactive_bases ?: (isDmsOnly ? (isDmsBroad ? 'ACGU' : 'AC') : null)
     def dynamicWindow = params.rfnorm_dynamic_window != null ? (params.rfnorm_dynamic_window as Integer) : (isDmsOnly && !isDmsBroad ? 50 : null)
 
@@ -875,8 +875,8 @@ def isFourBaseDms(meta) {
         meta.pH && (meta.pH as Double) >= 8.0
 }
 
-def resolveRfNormNormMethod(scoringMethod) {
-    def defaultMethod = (scoringMethod as Integer) == 2 ? 2 : 3
+def resolveRfNormNormMethod(scoringMethod, fourBaseDms = false) {
+    def defaultMethod = fourBaseDms ? 4 : ((scoringMethod as Integer) == 2 ? 2 : 3)
     if (params.rfnorm_norm_method == null) {
         return defaultMethod
     }
