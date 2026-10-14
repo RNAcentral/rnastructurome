@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### `Changed`
 
 - RNA Framework updated from 2.9.7 to 2.9.8. `rf-fold` now draws its SVG structure plots itself, so the pipeline no longer passes it `-vrp` (`--rffold_vienna_rnaplot` still sets `RNAplot` for the ViennaRNA and `rf-structextract` plots).
+- Results change for existing analyses because the two new options above default to `true`: DMS-MaP samples at pH ≥ 8 get four-base DMS reactivities, and groups with more than one replicate get one RNAalifold consensus structure instead of per-replicate RNAfold structures. Set `--four_base_dms false` and `--rffold_use_alifold false` to reproduce earlier releases.
 - Fuzzy control pairing (`--fuzzy_untreated_pairing`) now picks the untreated or denatured control whose `sample_group` shares the longest leading token prefix with the treated group, rather than matching on the first token only, so each arm of a design such as `HFF_uninfected` / `HFF_HCMV_05hpi` / `HFF_HCMV_72hpi` gets its own control instead of aborting as ambiguous. A lone control is reused across an arm's replicates, and denatured controls are resolved the same way.
 - `rf-count` now counts only the references that have alignments, instead of running one `samtools view` per FASTA entry; whole-transcriptome runs (~250k human transcripts) previously never finished. RC files therefore list only covered references. The `codon` profile now gives the genome-route `rf-count` task the same resources as the transcriptome-route one.
 
