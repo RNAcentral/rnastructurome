@@ -795,6 +795,9 @@ def renderRfNormSummary(sampleMetadata) {
     def isDmsBroad = isDmsOnly && sampleMetadata.pH != null && (sampleMetadata.pH as Double) >= 8.0
     def fourBaseDms = isFourBaseDms([ principle: principle, method: isDmsOnly ? 'dms' : '', pH: sampleMetadata.pH ])
     def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
+    if (fourBaseDms && params.rfnorm_norm_method != null && (params.rfnorm_norm_method as Integer) != 4) {
+        log.warn "--rfnorm_norm_method ${params.rfnorm_norm_method} is ignored: four-base DMS requires Mitchell normalisation (4). Set --four_base_dms false to use another method."
+    }
     def reactiveBases = params.rfnorm_reactive_bases ?: (isDmsOnly ? (isDmsBroad ? 'ACGU' : 'AC') : null)
     def dynamicWindow = params.rfnorm_dynamic_window != null ? (params.rfnorm_dynamic_window as Integer) : (isDmsOnly && !isDmsBroad ? 50 : null)
 
@@ -881,8 +884,12 @@ def isFourBaseDms(meta) {
         meta.pH && (meta.pH as Double) >= 8.0
 }
 
+// rf-norm -4d always uses Mitchell normalisation, and rf-normfactor's -mn requires it.
 def resolveRfNormNormMethod(scoringMethod, fourBaseDms = false) {
-    def defaultMethod = fourBaseDms ? 4 : ((scoringMethod as Integer) == 2 ? 2 : 3)
+    if (fourBaseDms) {
+        return 4
+    }
+    def defaultMethod = (scoringMethod as Integer) == 2 ? 2 : 3
     if (params.rfnorm_norm_method == null) {
         return defaultMethod
     }

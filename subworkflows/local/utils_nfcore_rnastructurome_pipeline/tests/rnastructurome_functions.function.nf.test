@@ -39,13 +39,13 @@ nextflow_function {
         then { assert function.success; assert function.result == 1 }
     }
 
-    test("renderRfNormSummary keeps an explicit norm method under four-base DMS") {
+    test("renderRfNormSummary forces norm method 4 under four-base DMS even when another is set") {
         function "renderRfNormSummary"
         when {
             params { four_base_dms = true; rfnorm_norm_method = 3 }
             function { """ input[0] = [ principles: ['MaP'], conditions: ['treated', 'untreated'], methods: ['DMS'], pH: 8.0 ] """ }
         }
-        then { assert function.success; assert function.result.rfnorm_args.contains('-nm 3 ') }
+        then { assert function.success; assert function.result.rfnorm_args.contains('-nm 4 ') }
     }
 
     test("renderRfNormSummary defaults to norm method 4 under four-base DMS") {
