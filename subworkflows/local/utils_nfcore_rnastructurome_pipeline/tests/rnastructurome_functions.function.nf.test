@@ -75,6 +75,35 @@ nextflow_function {
         then { assert function.success }
     }
 
+    test("parseInputSamplesheetMetadata reads pH from the samplesheet") {
+        function "parseInputSamplesheetMetadata"
+        when {
+            function {
+                """
+                def sheet = new File("$outputDir/ph.csv")
+                sheet.text = 'sample,fastq_1,method,principle,condition,pH\\ns1,r1.fq.gz,DMS,MaP,treated,8.5\\ns2,r2.fq.gz,DMS,MaP,untreated,9\\n'
+                input[0] = sheet.toString()
+                """
+            }
+        }
+        then { assert function.success; assert function.result.pH == 8.5 }
+    }
+
+    test("parseInputSamplesheetMetadata falls back to --pH for a sample with no pH") {
+        function "parseInputSamplesheetMetadata"
+        when {
+            params { pH = 8.2 }
+            function {
+                """
+                def sheet = new File("$outputDir/ph.csv")
+                sheet.text = 'sample,fastq_1,method,principle,condition,pH\\ns1,r1.fq.gz,DMS,MaP,treated,\\ns2,r2.fq.gz,DMS,MaP,untreated,9\\n'
+                input[0] = sheet.toString()
+                """
+            }
+        }
+        then { assert function.success; assert function.result.pH == 8.2 }
+    }
+
     test("isFourBaseDms is on for DMS-MaP at pH 8") {
         function "isFourBaseDms"
         when {

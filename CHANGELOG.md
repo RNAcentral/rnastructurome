@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `sample_group`/`replicate` group with more than one untreated or denatured sample now stops with a clear error instead of crashing; give runs of the same control the same sample name so they are concatenated.
 - `rf-count` no longer dies with "Unable to extract" when any of the first BAM records lacks an MD tag (an unmapped mate is enough), fixed upstream in RNA Framework 2.9.8 ([#98](https://github.com/dincarnato/RNAFramework/issues/98)).
 - `rf-count` no longer hangs at 100% CPU on references containing IUPAC ambiguity codes (e.g. `Y`, `R`); RNA Framework 2.9.8 reads them as `N`, so those positions report no reactivity ([#99](https://github.com/dincarnato/RNAFramework/issues/99)).
+- The run summary in the MultiQC report now reads the samplesheet `pH` (or `--pH`), so DMS runs at pH ≥ 8 report `ACGU` reactive bases and, with four-base DMS, `-nm 4 -4d`; the tools always received the correct arguments.
 - R2DT no longer fails on a missing `.command.env` when no sequences are extracted for drawing.
 - `--rfnorm_norm_method 1` (2-8% normalisation) is accepted again; the launch guard and schema rejected it while `docs/usage.md` documented it.
 - The rf-fold flag letters quoted in the `nextflow_schema.json` descriptions of `rffold_unconstrained`, `rffold_vienna_no_lonely_pairs`, `rffold_vienna_constrained`, `rffold_vienna_max_bp_span`, `rffold_fold_constraint_file` and `rffold_dotplot` now match what the pipeline passes (`-i`, `-nlp`, `-hc`, `-md`, `-c`, `-dp`).

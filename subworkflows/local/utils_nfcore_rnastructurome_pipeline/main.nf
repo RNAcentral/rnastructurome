@@ -643,15 +643,19 @@ def parseInputSamplesheetMetadata(inputPath) {
     def methodIdx = header.indexOf('method')
     def adapter5pIdx = header.indexOf('adapter_5p')
     def adapter3pIdx = header.indexOf('adapter_3p')
+    def pHIdx = header.indexOf('pH')
 
     def principles = []
     def conditions = []
     def methods = []
     def adapter5p = []
     def adapter3p = []
+    def pHs = []
 
     lines.drop(1).each { line ->
         def fields = line.split(',', -1)
+        def pH = (pHIdx >= 0 && pHIdx < fields.size() && fields[pHIdx]?.trim()) ? fields[pHIdx].trim() : params.pH
+        pHs << (pH != null ? (pH as Double) : null)
         if (principleIdx >= 0 && principleIdx < fields.size()) {
             def value = fields[principleIdx]?.trim()
             if (value) principles << value
@@ -679,7 +683,9 @@ def parseInputSamplesheetMetadata(inputPath) {
         conditions: conditions.collect { condition -> condition.toLowerCase() }.unique(),
         methods   : methods.unique(),
         adapter_5p: adapter5p.unique(),
-        adapter_3p: adapter3p.unique()
+        adapter_3p: adapter3p.unique(),
+        // The summary is per run, so it reports pH >= 8 settings only when every sample is at pH >= 8.
+        pH        : pHs && !pHs.contains(null) ? pHs.min() : null
     ]
 }
 
