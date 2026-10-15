@@ -1,0 +1,25 @@
+nextflow_pipeline {
+
+    name "Test four-base DMS launch checks"
+    script "../main.nf"
+    tag "pipeline"
+    profile "test_prokaryote"
+
+    test("Rejects Ding scoring for DMS-MaP samples given pH 8.5 by --pH") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir              = "$outputDir"
+                pH                  = 8.5
+                rfnorm_score_method = 1
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert (workflow.stdout + workflow.stderr).any { line -> line.contains('--rfnorm_score_method 1 cannot be used with four-base DMS') }
+        }
+    }
+}

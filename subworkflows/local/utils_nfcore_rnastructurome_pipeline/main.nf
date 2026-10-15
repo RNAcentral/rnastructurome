@@ -96,9 +96,7 @@ workflow PIPELINE_INITIALISATION {
     def samplesheet_rows = samplesheetToList(input, "${projectDir}/assets/schema_input.json")
     warnOnSamplesheetOverrides(samplesheet_rows)
 
-    channel
-        .fromList(samplesheet_rows)
-        .map {
+    def resolved_rows = samplesheet_rows.collect {
             meta, fastq_1, fastq_2 ->
                 def resolved_meta = meta + [
                     sample_id     : meta.sample_id ?: params.sample_id,
@@ -115,7 +113,14 @@ workflow PIPELINE_INITIALISATION {
                     sample_group  : meta.sample_group,
                     replicate     : meta.replicate
                 ]
+                [ resolved_meta, fastq_1, fastq_2 ]
+        }
+    checkFourBaseDmsOptions(resolved_rows.collect { row -> row[0] })
 
+    channel
+        .fromList(resolved_rows)
+        .map {
+            resolved_meta, fastq_1, fastq_2 ->
                 if (!fastq_2) {
                     return [ resolved_meta.id, resolved_meta + [ single_end:true ], [ fastq_1 ] ]
                 } else {
@@ -795,12 +800,6 @@ def renderRfNormSummary(sampleMetadata) {
     def isDmsBroad = isDmsOnly && sampleMetadata.pH != null && (sampleMetadata.pH as Double) >= 8.0
     def fourBaseDms = isFourBaseDms([ principle: principle, method: isDmsOnly ? 'dms' : '', pH: sampleMetadata.pH ])
     def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
-    if (fourBaseDms && (scoringMethod as Integer) in [1, 2]) {
-        error("--rfnorm_score_method ${scoringMethod} cannot be used with four-base DMS, which requires Siegfried (3) or Zubradt (4) scoring. Set --four_base_dms false to use it.")
-    }
-    if (fourBaseDms && params.rfnorm_norm_method != null && (params.rfnorm_norm_method as Integer) != 4) {
-        log.warn "--rfnorm_norm_method ${params.rfnorm_norm_method} is ignored: four-base DMS requires Mitchell normalisation (4). Set --four_base_dms false to use another method."
-    }
     def reactiveBases = params.rfnorm_reactive_bases ?: (isDmsOnly ? (isDmsBroad ? 'ACGU' : 'AC') : null)
     def dynamicWindow = params.rfnorm_dynamic_window != null ? (params.rfnorm_dynamic_window as Integer) : (isDmsOnly && !isDmsBroad ? 50 : null)
 
@@ -885,6 +884,19 @@ def isFourBaseDms(meta) {
         (meta.principle ?: '').toLowerCase() == 'map' &&
         (meta.method ?: '').toLowerCase() == 'dms' &&
         meta.pH && (meta.pH as Double) >= 8.0
+}
+
+// Runs on the resolved per-sample metadata, before any task, since rf-norm -4d would only fail mid-run.
+def checkFourBaseDmsOptions(metas) {
+    if (!metas.any { meta -> isFourBaseDms(meta) }) {
+        return
+    }
+    if (params.rfnorm_score_method != null && (params.rfnorm_score_method as Integer) in [1, 2]) {
+        error("--rfnorm_score_method ${params.rfnorm_score_method} cannot be used with four-base DMS, which requires Siegfried (3) or Zubradt (4) scoring. Set --four_base_dms false to use it.")
+    }
+    if (params.rfnorm_norm_method != null && (params.rfnorm_norm_method as Integer) != 4) {
+        log.warn "--rfnorm_norm_method ${params.rfnorm_norm_method} is ignored for four-base DMS samples, which require Mitchell normalisation (4). Set --four_base_dms false to use another method."
+    }
 }
 
 // rf-norm -4d always uses Mitchell normalisation, and rf-normfactor's -mn requires it.
