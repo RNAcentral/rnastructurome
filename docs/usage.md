@@ -195,7 +195,9 @@ A control is only ever borrowed from a group it shares leading tokens with, so a
 
 Disable the fallback with `--fuzzy_untreated_pairing false`, in which case only exact `sample_group + replicate` matches are used and unmatched groups proceed without a negative control.
 
-For DMS experiments, a few defaults change automatically. `--rfnorm_reactive_bases` is set to `AC` (or `ACGU` when `pH ≥ 8`). `--rfnorm_dynamic_window` turns on when `pH < 8`, and `--rfnorm_norm_window` defaults to `50` for DMS or RT-stop samples; it controls the size of the sliding window used to compute local normalisation factors along the transcript. `--rfnorm_nan` (minimum reads at a position before reactivity is reported as NaN) defaults to `1000` for MaP or `50` for RT-stop. These can all be overridden explicitly if needed. DMS-MaP samples at `pH ≥ 8` also get four-base DMS analysis by default; see `--four_base_dms`.
+For DMS experiments, a few defaults change automatically. `--rfnorm_reactive_bases` is set to `AC` (or `ACGU` when `pH ≥ 8`). `--rfnorm_dynamic_window` turns on when `pH < 8`, and `--rfnorm_norm_window` defaults to `50` for RT-stop samples and for DMS samples without four-base DMS; it controls the size of the sliding window used to compute local normalisation factors along the transcript. DMS-MaP samples at `pH ≥ 8` get four-base DMS analysis by default: reactivities at all four bases, each normalised separately over the whole transcript; see `--four_base_dms`.
+
+`--rfnorm_nan` (minimum reads at a position before reactivity is reported as NaN) defaults to `1000` for MaP or `50` for RT-stop. All of these defaults can be overridden explicitly if needed.
 
 Other parameters worth knowing about:
 
