@@ -96,9 +96,7 @@ workflow PIPELINE_INITIALISATION {
     def samplesheet_rows = samplesheetToList(input, "${projectDir}/assets/schema_input.json")
     warnOnSamplesheetOverrides(samplesheet_rows)
 
-    channel
-        .fromList(samplesheet_rows)
-        .map {
+    def resolved_rows = samplesheet_rows.collect {
             meta, fastq_1, fastq_2 ->
                 def resolved_meta = meta + [
                     sample_id     : meta.sample_id ?: params.sample_id,
@@ -115,7 +113,14 @@ workflow PIPELINE_INITIALISATION {
                     sample_group  : meta.sample_group,
                     replicate     : meta.replicate
                 ]
+                [ resolved_meta, fastq_1, fastq_2 ]
+        }
+    checkFourBaseDmsOptions(resolved_rows.collect { row -> row[0] })
 
+    channel
+        .fromList(resolved_rows)
+        .map {
+            resolved_meta, fastq_1, fastq_2 ->
                 if (!fastq_2) {
                     return [ resolved_meta.id, resolved_meta + [ single_end:true ], [ fastq_1 ] ]
                 } else {
@@ -273,9 +278,15 @@ def pipelineToolReferences(transcriptome) {
         [ when: true,
           cite: 'RNAFramework (Incarnato et al. 2018)',
           ref : '<li>Incarnato D, et al. (2018). RNA Framework: an all-in-one toolkit for the analysis of RNA structures and post-transcriptional modifications. Nucleic Acids Research, 46(W1), W121–W127. doi: 10.1093/nar/gky486</li>' ],
+        [ when: params.four_base_dms as Boolean,
+          cite: 'four-base DMS analysis (Mitchell et al. 2023)',
+          ref : '<li>Mitchell D, et al. (2023). Mutation signature filtering enables high-fidelity RNA structure probing at all four nucleobases with DMS. Nucleic Acids Research, 51(16), 8744–8757. doi: 10.1093/nar/gkad522</li>' ],
         [ when: !params.stop_after_jackknife,
           cite: 'ViennaRNA (Lorenz et al. 2011)',
           ref : '<li>Lorenz R, et al. (2011). ViennaRNA Package 2.0. Algorithms for Molecular Biology, 6, 26. doi: 10.1186/1748-7188-6-26</li>' ],
+        [ when: !params.stop_after_jackknife && params.rffold_use_alifold,
+          cite: 'RNAalifold (Bernhart et al. 2008)',
+          ref : '<li>Bernhart SH, et al. (2008). RNAalifold: improved consensus structure prediction for RNA alignments. BMC Bioinformatics, 9, 474. doi: 10.1186/1471-2105-9-474</li>' ],
         [ when: !params.stop_after_jackknife && params.r2dt,
           cite: 'R2DT (Sweeney et al. 2021)',
           ref : '<li>Sweeney BA, et al. (2021). R2DT is a framework for predicting and visualising RNA secondary structure using templates. Nature Communications, 12(1), 3494. doi: 10.1038/s41467-021-23555-5</li>' ],
@@ -632,15 +643,19 @@ def parseInputSamplesheetMetadata(inputPath) {
     def methodIdx = header.indexOf('method')
     def adapter5pIdx = header.indexOf('adapter_5p')
     def adapter3pIdx = header.indexOf('adapter_3p')
+    def pHIdx = header.indexOf('pH')
 
     def principles = []
     def conditions = []
     def methods = []
     def adapter5p = []
     def adapter3p = []
+    def pHs = []
 
     lines.drop(1).each { line ->
         def fields = line.split(',', -1)
+        def pH = (pHIdx >= 0 && pHIdx < fields.size() && fields[pHIdx]?.trim()) ? fields[pHIdx].trim() : params.pH
+        pHs << (pH != null ? (pH as Double) : null)
         if (principleIdx >= 0 && principleIdx < fields.size()) {
             def value = fields[principleIdx]?.trim()
             if (value) principles << value
@@ -668,7 +683,9 @@ def parseInputSamplesheetMetadata(inputPath) {
         conditions: conditions.collect { condition -> condition.toLowerCase() }.unique(),
         methods   : methods.unique(),
         adapter_5p: adapter5p.unique(),
-        adapter_3p: adapter3p.unique()
+        adapter_3p: adapter3p.unique(),
+        // The summary is per run, so it reports pH >= 8 settings only when every sample is at pH >= 8.
+        pH        : pHs && !pHs.contains(null) ? pHs.min() : null
     ]
 }
 
@@ -785,9 +802,10 @@ def renderRfNormSummary(sampleMetadata) {
     def hasUntreated = conditions.contains('untreated')
     def hasDenatured = conditions.contains('denatured')
     def scoringMethod = resolveRfNormScoreMethod(principle, hasUntreated)
-    def normMethod = resolveRfNormNormMethod(scoringMethod)
     def isDmsOnly = ((sampleMetadata.methods ?: []).collect { method -> method.toLowerCase() }.unique()) == ['dms']
     def isDmsBroad = isDmsOnly && sampleMetadata.pH != null && (sampleMetadata.pH as Double) >= 8.0
+    def fourBaseDms = isFourBaseDms([ principle: principle, method: isDmsOnly ? 'dms' : '', pH: sampleMetadata.pH ])
+    def normMethod = resolveRfNormNormMethod(scoringMethod, fourBaseDms)
     def reactiveBases = params.rfnorm_reactive_bases ?: (isDmsOnly ? (isDmsBroad ? 'ACGU' : 'AC') : null)
     def dynamicWindow = params.rfnorm_dynamic_window != null ? (params.rfnorm_dynamic_window as Integer) : (isDmsOnly && !isDmsBroad ? 50 : null)
 
@@ -796,6 +814,7 @@ def renderRfNormSummary(sampleMetadata) {
         "-nm ${normMethod}"
     ]
     if (params.rfnorm_remap_reactivities as Boolean) args << '--remap-reactivities'
+    if (fourBaseDms) args << '-4d'
     if (reactiveBases) args << "--reactive-bases ${reactiveBases}"
     if (params.rfnorm_norm_window != null) args << "--norm-window ${params.rfnorm_norm_window as Integer}"
     if (params.rfnorm_window_offset != null) args << "--window-offset ${params.rfnorm_window_offset as Integer}"
@@ -865,7 +884,32 @@ def resolveRfNormScoreMethod(principle, hasUntreated) {
     requestedMethod
 }
 
-def resolveRfNormNormMethod(scoringMethod) {
+// Four-base DMS reads N1-G out as G->C/G->T, which needs alkaline DMS-MaP (Mitchell et al., 2023).
+def isFourBaseDms(meta) {
+    (params.four_base_dms as Boolean) &&
+        (meta.principle ?: '').toLowerCase() == 'map' &&
+        (meta.method ?: '').toLowerCase() == 'dms' &&
+        meta.pH && (meta.pH as Double) >= 8.0
+}
+
+// Runs on the resolved per-sample metadata, before any task, since rf-norm -4d would only fail mid-run.
+def checkFourBaseDmsOptions(metas) {
+    if (!metas.any { meta -> isFourBaseDms(meta) }) {
+        return
+    }
+    if (params.rfnorm_score_method != null && (params.rfnorm_score_method as Integer) in [1, 2]) {
+        error("--rfnorm_score_method ${params.rfnorm_score_method} cannot be used with four-base DMS, which requires Siegfried (3) or Zubradt (4) scoring. Set --four_base_dms false to use it.")
+    }
+    if (params.rfnorm_norm_method != null && (params.rfnorm_norm_method as Integer) != 4) {
+        log.warn "--rfnorm_norm_method ${params.rfnorm_norm_method} is ignored for four-base DMS samples, which require Mitchell normalisation (4). Set --four_base_dms false to use another method."
+    }
+}
+
+// rf-norm -4d always uses Mitchell normalisation, and rf-normfactor's -mn requires it.
+def resolveRfNormNormMethod(scoringMethod, fourBaseDms = false) {
+    if (fourBaseDms) {
+        return 4
+    }
     def defaultMethod = (scoringMethod as Integer) == 2 ? 2 : 3
     if (params.rfnorm_norm_method == null) {
         return defaultMethod

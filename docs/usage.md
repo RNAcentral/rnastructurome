@@ -195,7 +195,9 @@ A control is only ever borrowed from a group it shares leading tokens with, so a
 
 Disable the fallback with `--fuzzy_untreated_pairing false`, in which case only exact `sample_group + replicate` matches are used and unmatched groups proceed without a negative control.
 
-For DMS experiments, a few defaults change automatically. `--rfnorm_reactive_bases` is set to `AC` (or `ACGU` when `pH ≥ 8`). `--rfnorm_dynamic_window` turns on when `pH < 8`, and `--rfnorm_norm_window` defaults to `50` for DMS or RT-stop samples; it controls the size of the sliding window used to compute local normalisation factors along the transcript. `--rfnorm_nan` (minimum reads at a position before reactivity is reported as NaN) defaults to `1000` for MaP or `50` for RT-stop. These can all be overridden explicitly if needed.
+For DMS experiments, a few defaults change automatically. `--rfnorm_reactive_bases` is set to `AC` (or `ACGU` when `pH ≥ 8`). `--rfnorm_dynamic_window` turns on when `pH < 8`, and `--rfnorm_norm_window` defaults to `50` for RT-stop samples and for DMS samples without four-base DMS; it controls the size of the sliding window used to compute local normalisation factors along the transcript. DMS-MaP samples at `pH ≥ 8` get four-base DMS analysis by default: reactivities at all four bases, each normalised separately over the whole transcript; see `--four_base_dms`.
+
+`--rfnorm_nan` (minimum reads at a position before reactivity is reported as NaN) defaults to `1000` for MaP or `50` for RT-stop. All of these defaults can be overridden explicitly if needed.
 
 Other parameters worth knowing about:
 
@@ -231,7 +233,7 @@ For the full list of available options see the [rf-correlate documentation](http
 
 For long transcripts, rf-fold can fold in a sliding window rather than the whole sequence at once. `--rffold_window` (default `1000`) sets the MFE folding window size and enables windowed folding; unset it (`null`) to fold the whole transcript. `--rffold_partition_window` (default `1000`) sets the partition-function window used for the Shannon entropy and dot-plot calculation, independently of MFE windowing, and `--rffold_vienna_max_bp_span` (default `600`) caps the maximum distance ViennaRNA allows between paired bases.
 
-`--rffold_shannon_entropy` (default `true`) computes per-position Shannon entropy alongside the predicted structure, giving a measure of folding confidence. `--rffold_only_common` keeps only transcripts covered in at least N XML experiments; when not set explicitly, the pipeline enables it automatically for fold groups with more than one replicate, setting N to the group's replicate count so only transcripts present in every replicate are retained.
+`--rffold_shannon_entropy` (default `true`) computes per-position Shannon entropy alongside the predicted structure, giving a measure of folding confidence. `--rffold_only_common` keeps only transcripts covered in at least N XML experiments; when not set explicitly, the pipeline enables it automatically for fold groups with more than one replicate, setting N to the group's replicate count so only transcripts present in every replicate are retained. `--rffold_use_alifold` (default `true`) folds such a group's replicates together with RNAalifold, constrained by all their reactivity profiles at once, giving one consensus structure per transcript; set it to `false` to fold each replicate with RNAfold and aggregate the base pairs instead.
 
 Once structures are folded, the pipeline draws reactivity-coloured 2D structure diagrams using [R2DT](https://github.com/RNAcentral/R2DT) where a template exists (rRNA, snRNA, tRNA, and other well-characterised RNA families). All folded RNAs will also be folded with ViennaRNA's `RNAplot`. R2DT is only available under a container profile (`docker`, `singularity`, `apptainer`); under `conda` or `mamba` all diagrams fall back to `RNAplot`.
 

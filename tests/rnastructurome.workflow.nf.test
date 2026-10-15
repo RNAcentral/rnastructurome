@@ -451,6 +451,61 @@ nextflow_workflow {
         }
     }
 
+    test("Passes four-base DMS and RNAalifold arguments to RNA Framework") {
+
+        options "-stub"
+
+        when {
+            params {
+                outdir = "$outputDir"
+                fasta  = "https://raw.githubusercontent.com/nf-core/test-datasets/rnastructurome/testdata/test_transcriptome/Homo_sapiens.GRCh38.ENST00000389680.fa"
+            }
+            workflow {
+                """
+                input[0] = Channel.of(
+                    [
+                        [ id:'dms_treated_rep1', sample_id:'dms_treated_rep1', principle:'MaP', method:'DMS', pH:8.5, organism:'Homo sapiens', single_end:true, sample_group:'dms_line', replicate:'rep1', condition:'treated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'dms_untreated_rep1', sample_id:'dms_untreated_rep1', principle:'MaP', method:'DMS', pH:8.5, organism:'Homo sapiens', single_end:true, sample_group:'dms_line', replicate:'rep1', condition:'untreated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'dms_treated_rep2', sample_id:'dms_treated_rep2', principle:'MaP', method:'DMS', pH:8.5, organism:'Homo sapiens', single_end:true, sample_group:'dms_line', replicate:'rep2', condition:'treated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ],
+                    [
+                        [ id:'dms_untreated_rep2', sample_id:'dms_untreated_rep2', principle:'MaP', method:'DMS', pH:8.5, organism:'Homo sapiens', single_end:true, sample_group:'dms_line', replicate:'rep2', condition:'untreated' ],
+                        [ file(params.pipelines_testdata_base_path + 'rnastructurome/testdata/HEK293T_untreated_r1.fastq.gz', checkIfExists: true) ]
+                    ]
+                )
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            // Stubs echo their ext.args, so each task's .command.sh shows what the tool would get.
+            def commands = [:]
+            new File("${launchDir}/work").eachFileRecurse { f ->
+                if (f.name == '.command.run') commands[(f.text =~ /### name: '([^']+)'/)[0][1]] = new File(f.parentFile, '.command.sh').text
+            }
+            def argsOf = { proc -> commands.findAll { name, _sh -> name.contains(":${proc} (") }.values() }
+            assertAll(
+                { assert workflow.success },
+                { assert argsOf('RNAFRAMEWORK_RFCOUNT_GENOME').size() == 4 },
+                { assert argsOf('RNAFRAMEWORK_RFCOUNT_GENOME').every { sh -> sh.contains('-om H2N,G2Y -ncl') } },
+                { assert argsOf('RNAFRAMEWORK_RFNORM').size() == 2 },
+                { assert argsOf('RNAFRAMEWORK_RFNORM').every { sh -> sh.contains('-nm 4') && sh.contains('-4d') } },
+                { assert argsOf('RNAFRAMEWORK_RFNORMFACTOR').size() == 1 },
+                { assert argsOf('RNAFRAMEWORK_RFNORMFACTOR').every { sh -> sh.contains('-ni') && !sh.contains('-mn') } },
+                { assert argsOf('RNAFRAMEWORK_RFFOLD').size() == 1 },
+                { assert argsOf('RNAFRAMEWORK_RFFOLD').every { sh -> sh.contains('-ua') } }
+            )
+        }
+    }
+
     test("Fails rf-norm grouping when sample_group or replicate is missing") {
 
         options "-stub"
