@@ -207,7 +207,6 @@
                 "E_coli_DH5a_1_rfeval.metrics.tsv:md5,5562289b2dfee31d2012f23f8811d183",
                 "rfeval.log:md5,4269f89fb697cfb64a4135b40e3e7243",
                 "16S_rRNA.bp:md5,48504ffbcf4e842bb971750d9fe8f88e",
-                "16S_rRNA.rdat:md5,abda3d04359822fb3bd8c71f8b09a816",
                 "rffold.log:md5,0aaa33c23d2c3bc29c01833d51704c98",
                 "16S_rRNA.wig:md5,acc6dac4dfbee2c2c0acf7cde942d04a",
                 "E_coli_DH5a_genome.bp:md5,48504ffbcf4e842bb971750d9fe8f88e",
