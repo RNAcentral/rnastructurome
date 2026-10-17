@@ -3,7 +3,7 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.1.0dev - [unreleased]
+## v1.1.0 - [19 October 2026]
 
 **Behaviour change:** treated groups whose `sample_group` shares no leading token with any control now get no control; the reference-wide lone-control fallback is gone.
 
