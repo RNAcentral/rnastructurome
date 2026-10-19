@@ -105,21 +105,10 @@ workflow PIPELINE_INITIALISATION {
 
     def resolved_rows = samplesheet_rows.collect {
             meta, fastq_1, fastq_2 ->
-                def resolved_meta = meta + [
-                    sample_id     : meta.sample_id ?: params.sample_id,
-                    library_layout: fastq_2 ? 'PAIRED' : 'SINGLE',
-                    method        : meta.method ?: params.method,
-                    principle     : meta.principle ?: params.principle,
-                    chemical      : meta.chemical ?: params.chemical,
-                    RT_enzyme     : meta.RT_enzyme ?: params.RT_enzyme,
-                    pH            : hasMetadataValue(meta.pH) ? meta.pH : params.pH,
-                    organism      : meta.organism ?: params.organism,
-                    adapter_3p    : meta.adapter_3p,
-                    adapter_5p    : meta.adapter_5p,
-                    umi_pattern   : meta.umi_pattern ?: params.umi_pattern,
-                    sample_group  : meta.sample_group,
-                    replicate     : meta.replicate
-                ]
+                def resolved_meta = meta + [ library_layout: fastq_2 ? 'PAIRED' : 'SINGLE' ] +
+                    paramFallbackFields().collectEntries { field ->
+                        [ (field): hasMetadataValue(meta[field]) ? meta[field] : params[field] ]
+                    }
                 [ resolved_meta, fastq_1, fastq_2 ]
         }
     checkFourBaseDmsOptions(resolved_rows.collect { row -> row[0] })
@@ -200,12 +189,17 @@ def normaliseMetadataValue(value) {
     return value.toString().trim().toLowerCase()
 }
 
+// Samplesheet columns that fall back to the same-named param when a row leaves them blank.
+def paramFallbackFields() {
+    return ['sample_id', 'method', 'principle', 'chemical', 'RT_enzyme', 'pH', 'organism', 'umi_pattern']
+}
+
 // The per-sample params are fallbacks for rows leaving the column blank — a row that sets it wins.
 // Warn once per field so the precedence is visible rather than silent. Compared case-insensitively,
 // as principle/method are read downstream: warning about a value the user did not actually
 // contradict is worse than staying quiet.
 def warnOnSamplesheetOverrides(rows) {
-    ['sample_id', 'method', 'principle', 'chemical', 'RT_enzyme', 'pH', 'organism', 'umi_pattern'].each { field ->
+    paramFallbackFields().each { field ->
         def param_value = params[field]
         if (!hasMetadataValue(param_value)) {
             return
