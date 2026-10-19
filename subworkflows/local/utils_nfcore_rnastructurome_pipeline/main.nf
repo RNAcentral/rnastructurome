@@ -87,6 +87,13 @@ workflow PIPELINE_INITIALISATION {
         nextflow_cli_args
     )
 
+    if (params.skip_markdup != null) {
+        log.warn "--skip_markdup is deprecated and will be removed in a future release; use --markdup instead."
+    }
+    if (params.fuzzy_untreated_pairing != null) {
+        log.warn "--fuzzy_untreated_pairing is deprecated and will be removed in a future release; use --exact_untreated_pairing instead."
+    }
+
     if (params.cutadapt_discard_untrimmed && params.cutadapt_quality_only) {
         error("--cutadapt_discard_untrimmed needs adapter trimming, so it cannot be combined with --cutadapt_quality_only (every read would be discarded).")
     }
@@ -840,6 +847,16 @@ def renderRfNormSummary(sampleMetadata) {
     ]
 }
 
+// The deprecated --skip_markdup still applies, inverted, when it is set.
+def markdupEnabled() {
+    return params.skip_markdup != null ? !(params.skip_markdup as Boolean) : (params.markdup as Boolean)
+}
+
+// The deprecated --fuzzy_untreated_pairing still applies, inverted, when it is set.
+def exactUntreatedPairing() {
+    return params.fuzzy_untreated_pairing != null ? !(params.fuzzy_untreated_pairing as Boolean) : (params.exact_untreated_pairing as Boolean)
+}
+
 // Leading `_` tokens two sample_groups share: HFF_infected_HCMV_05hpi vs HFF_infected_HCMV_72hpi → 3.
 def sharedGroupPrefixLength(String a, String b) {
     // transpose() stops at the shorter list, so no mismatch means one is a prefix of the other.
@@ -855,15 +872,15 @@ def selectClosestControl(String label, String group, List candidates) {
 
     def sameRep = closest.findAll { c -> c.same_replicate }
     if (sameRep.size() > 1) {
-        error("Ambiguous ${label} fallback for '${group}': multiple ${label} groups share the same sample_group prefix and replicate: ${sameRep.collect { c -> c.control_group }.sort().join(', ')}. Use --fuzzy_untreated_pairing false to disable fuzzy matching.")
+        error("Ambiguous ${label} fallback for '${group}': multiple ${label} groups share the same sample_group prefix and replicate: ${sameRep.collect { c -> c.control_group }.sort().join(', ')}. Use --exact_untreated_pairing to disable the fallback.")
     }
     if (sameRep.size() == 1) {
-        log.warn "No exact ${label} match for '${group}' — falling back to '${sameRep[0].control_group}' (longest shared sample_group prefix, same replicate). Set --fuzzy_untreated_pairing false to require exact matches."
+        log.warn "No exact ${label} match for '${group}' — falling back to '${sameRep[0].control_group}' (longest shared sample_group prefix, same replicate). Set --exact_untreated_pairing to require exact matches."
         return [ group, sameRep[0].rc ]
     }
 
     if (closest.size() == 1) {
-        log.warn "No ${label} at replicate for '${group}' — falling back to '${closest[0].control_group}' (longest shared sample_group prefix, different replicate). Set --fuzzy_untreated_pairing false to require exact matches."
+        log.warn "No ${label} at replicate for '${group}' — falling back to '${closest[0].control_group}' (longest shared sample_group prefix, different replicate). Set --exact_untreated_pairing to require exact matches."
         return [ group, closest[0].rc ]
     }
     log.warn "No ${label} for '${group}': ${closest.collect { c -> c.control_group }.sort().join(', ')} are equally close at other replicates, so none is used."

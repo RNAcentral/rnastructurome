@@ -35,6 +35,8 @@ then pass essential but uniform options like this:
 --input /path/to/samplesheet.csv --method SHAPE --principle RT-stop --organism "Homo sapiens"
 ```
 
+or in a `params` file.
+
 ### Column reference
 
 | Column         | Required | Required in samplesheet | Description                                                                                                             |
@@ -101,14 +103,14 @@ In short-insert libraries (e.g. tRNA, miRNA) every genuine read runs into the 3'
 
 ### Deduplication and UMI handling (optional)
 
-By default the pipeline does **not** deduplicate reads (`--skip_markdup true`). Position-based deduplication is not valid for chemical-probing data without UMIs; reads that start at the same coordinate are independent molecules, not PCR duplicates. Set `--skip_markdup false` to enable SAMtools markdup if you know position-based dedup is appropriate for your library.
+By default the pipeline does **not** deduplicate reads. Position-based deduplication is not valid for chemical-probing data without UMIs; reads that start at the same coordinate are independent molecules, not PCR duplicates. Set `--markdup` to enable SAMtools markdup if you know position-based dedup is appropriate for your library.
 
 UMI-tagged samples are deduplicated with `umi_tools`, enabled via `umi_pattern` (per-sample column or `--umi_pattern` if the pattern is the same for all samples).
 
 - Patterns containing only `N/C/X` use `umi_tools --bc-pattern` mode directly.
 - Patterns that contain IUPAC (e.g. containing `D`) are converted to `--extract-method=regex` mode automatically. Each IUPAC character is expanded to a regex character class (`D` → `[AGT]`, `N` → `[ACGT]`, etc.) and the pattern is anchored to the read start as a named capture group. For example, `DNNN` becomes `^(?P<umi_1>[AGT][ACGT][ACGT][ACGT])`.
 
-On the genome (STAR) route, STAR's transcriptome-coordinate BAM is produced at alignment time, before dedup. When dedup removes reads (UMI samples, or `--skip_markdup false`), the pipeline reconciles the transcript BAM against the surviving read names so transcript-level counts match the deduplicated genome BAM. Samples that undergo no read removal (non-UMI with the default `--skip_markdup true`) skip this reconciliation entirely.
+On the genome (STAR) route, STAR's transcriptome-coordinate BAM is produced at alignment time, before dedup. When dedup removes reads (UMI samples, or `--markdup`), the pipeline reconciles the transcript BAM against the surviving read names so transcript-level counts match the deduplicated genome BAM. Samples that undergo no read removal (non-UMI without `--markdup`) skip this reconciliation entirely.
 
 ### Reference resolution
 
@@ -189,15 +191,26 @@ Similarly, you can override the normalisation method with `--rfnorm_norm_method`
 - `3` is box-plot normalisation (removes outliers beyond 1.5× IQR then divides by the mean of the next top 10%), which is the default for most conditions
 - `4` is Mitchell normalisation (MaP only, uses the higher of the mean 90th-95th percentile reactivity or the 75th percentile of non-zero reactivities as the scaling factor)
 
-Treated samples are usually paired with untreated/denatured by matching `sample_group + replicate` exactly. Where the authors did not create a matching untreated for every treatment, the pipeline falls back to the untreated or denatured sample whose `sample_group` shares the longest leading token prefix with the treated group; for example, `MDA-MB-231_DMSO_treated_r1` will match exactly to `MDA-MB-231_DMSO_untreated_r1`, but `MDA-MB-231_MTX_treated_r1` will also pair with `MDA-MB-231_DMSO_untreated_r1` if no exact matching untreated sample exists. In another example, `HFF_uninfected_treated_r1/_r2` will match with `HFF_uninfected_untreated_r1` and `HFF_uninfected_denatured_r1`, and `HFF_infected_HCMV_5hr_treated_r1` (and the `_24hr` and `_72hr` equivalents) will match with `HFF_infected_HCMV_72hr_untreated_r1` and `HFF_infected_HCMV_72hr_denatured_r1`. The longest leading token prefix is what correctly matches the uninfected controls to their uninfected treated samples and the infected ones to the infected samples. Among candidates that are equally close, the one at the same replicate wins; if none is at the same replicate but the closest arm holds exactly one control, that control is reused across the arm's replicates - which is how `HFF_uninfected_untreated_r1` covers both `_r1` and `_r2` above. A warning is emitted whenever a fallback is used, and if two candidates are equally close at the same replicate the pipeline errors.
+Treated samples are paired with the untreated (and denatured, if present) control that has the same `sample_group` and `replicate`. When the samplesheet has no exact match for a treated group, the pipeline falls back to the control whose `sample_group` shares the longest leading substring with it:
 
-A control is only ever borrowed from a group it shares leading tokens with, so a treated group whose `sample_group` has nothing in common with any untreated is left without one (and errors downstream if `rf-normfactor` requires one; see below) rather than being paired with an unrelated sample.
+| Treated sample                                   | Control used                          | Reason                                                                        |
+| ------------------------------------------------ | ------------------------------------- | ----------------------------------------------------------------------------- |
+| `MDA-MB-231_DMSO_treated_r1`                     | `MDA-MB-231_DMSO_untreated_r1`        | Exact match                                                                   |
+| `MDA-MB-231_MTX_treated_r1`                      | `MDA-MB-231_DMSO_untreated_r1`        | No exact match; shares `MDA-MB-231`                                           |
+| `HFF_uninfected_treated_r1` and `_r2`            | `HFF_uninfected_untreated_r1`         | Shares `HFF_uninfected`; the arm's only control is reused for both replicates |
+| `HFF_infected_HCMV_5hr_treated_r1` (and `_24hr`) | `HFF_infected_HCMV_72hr_untreated_r1` | Shares `HFF_infected_HCMV`, which is closer than `HFF_uninfected`             |
 
-Disable the fallback with `--fuzzy_untreated_pairing false`, in which case only exact `sample_group + replicate` matches are used and unmatched groups proceed without a negative control.
+Among equally close controls:
+
+- the one at the same replicate is used;
+- if none is at the same replicate and the closest arm has exactly one control, that control is reused for every replicate;
+- two equally close controls at the same replicate will throw an error.
+
+A control is never borrowed from a `sample_group` that shares no leading substring with the treated group; that group is left without a control (and errors downstream if `rf-normfactor` requires one; see below). A warning is logged whenever the fallback is used. Set `--exact_untreated_pairing` to turn the fallback off, so only exact `sample_group` + `replicate` matches are used and unmatched groups proceed without a negative control.
 
 For DMS experiments, a few defaults change automatically. `--rfnorm_reactive_bases` is set to `AC` (or `ACGU` when `pH ≥ 8`). `--rfnorm_dynamic_window` turns on when `pH < 8`, and `--rfnorm_norm_window` defaults to `50` for RT-stop samples and for DMS samples without four-base DMS; it controls the size of the sliding window used to compute local normalisation factors along the transcript. DMS-MaP samples at `pH ≥ 8` get four-base DMS analysis by default: reactivities at all four bases, each normalised separately over the whole transcript; see `--four_base_dms`.
 
-`--rfnorm_nan` (minimum reads at a position before reactivity is reported as NaN) defaults to `1000` for MaP or `50` for RT-stop. All of these defaults can be overridden explicitly if needed.
+`--rfnorm_nan` (minimum reads at a position before reactivity is reported as NaN) defaults to `1000` for MaP or `50` for RT-stop.
 
 Other parameters worth knowing about:
 

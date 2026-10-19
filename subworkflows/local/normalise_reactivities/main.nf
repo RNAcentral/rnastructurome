@@ -10,6 +10,7 @@ include {
     resolveRfNormNormMethod
     resolveReferenceKey
     isFourBaseDms
+    exactUntreatedPairing
 } from '../utils_nfcore_rnastructurome_pipeline/main'
 
 workflow NORMALISE_REACTIVITIES {
@@ -96,7 +97,7 @@ workflow NORMALISE_REACTIVITIES {
     // A treated group with no exact control takes the one sharing the longest sample_group prefix.
     def ch_resolved_untreated
     def ch_resolved_denatured
-    if (params.fuzzy_untreated_pairing as Boolean) {
+    if (!exactUntreatedPairing()) {
         // Controls of each kind, keyed as [reference, sample_group, replicate, group, rc] for cross-matching.
         def ch_untreated_lookup = ch_rc_by_group
             .filter  { _group, condition, _meta, _rc, _rci -> condition == 'untreated' }

@@ -158,6 +158,34 @@ nextflow_function {
         then { assert function.success; assert function.result == false }
     }
 
+    test("markdupEnabled is off by default") {
+        function "markdupEnabled"
+        then { assert function.success; assert function.result == false }
+    }
+
+    test("markdupEnabled follows --markdup") {
+        function "markdupEnabled"
+        when { params { markdup = true } }
+        then { assert function.success; assert function.result == true }
+    }
+
+    test("markdupEnabled inverts the deprecated --skip_markdup") {
+        function "markdupEnabled"
+        when { params { skip_markdup = false } }
+        then { assert function.success; assert function.result == true }
+    }
+
+    test("exactUntreatedPairing is off by default") {
+        function "exactUntreatedPairing"
+        then { assert function.success; assert function.result == false }
+    }
+
+    test("exactUntreatedPairing inverts the deprecated --fuzzy_untreated_pairing") {
+        function "exactUntreatedPairing"
+        when { params { fuzzy_untreated_pairing = false } }
+        then { assert function.success; assert function.result == true }
+    }
+
     test("resolveRfNormScoreMethod defaults by principle and untreated control") {
         function "resolveRfNormScoreMethod"
         when { function { """ input[0] = 'rt-stop'; input[1] = true """ } }

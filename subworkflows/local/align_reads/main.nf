@@ -29,6 +29,7 @@ include { buildStarAlignInputs } from '../utils_nfcore_rnastructurome_pipeline/m
 include { resolveReferenceKey  } from '../utils_nfcore_rnastructurome_pipeline/main'
 include { collectToMap         } from '../utils_nfcore_rnastructurome_pipeline/main'
 include { parseInferExperiment } from '../utils_nfcore_rnastructurome_pipeline/main'
+include { markdupEnabled       } from '../utils_nfcore_rnastructurome_pipeline/main'
 
 workflow ALIGN_READS {
 
@@ -45,6 +46,7 @@ workflow ALIGN_READS {
 
     main:
     ch_multiqc_files = channel.empty()
+    def markdup      = markdupEnabled()
 
     // RT-STOP ALIGNMENT
     def ch_rtstop_aligned_bam      = channel.empty()
@@ -142,7 +144,7 @@ workflow ALIGN_READS {
     // when markdup is disabled (rf-count MaP does its own read-name sorting via --sort-by-read-name).
     // RT-stop (SE) BAMs skip this step regardless.
     def ch_mapped_bam = ch_rtstop_aligned_bam.mix(ch_map_aligned_bam)
-    if (!params.skip_markdup) {
+    if (markdup) {
         SAMTOOLS_SORT_NAME (
             ch_map_aligned_bam,
             channel.value([ [], [], [] ]),
@@ -187,7 +189,7 @@ workflow ALIGN_READS {
     // MODULE: samtools flagstat — pre-dedup counts, only for samples that actually undergo read-removing
     // dedup (UMI always; non-UMI only with markdup on). For the rest pre == post, so skip the redundant
     // flagstat; the count-progression table falls back to pre = post for these.
-    def ch_flagstat_pre_input = params.skip_markdup ? dedup_branches.umi : ch_sorted_bam_bai
+    def ch_flagstat_pre_input = markdup ? ch_sorted_bam_bai : dedup_branches.umi
     SAMTOOLS_FLAGSTAT_PRE (
         ch_flagstat_pre_input
     )
@@ -201,7 +203,7 @@ workflow ALIGN_READS {
     // MODULE: samtools markdup — deduplicate non-UMI BAMs. FASTA/FAI not needed; pass empty.
     // Drop the bai from [meta, bam, bai] — markdup only takes [meta, bam].
     def ch_non_umi_bam = dedup_branches.non_umi.map { meta, bam, _bai -> [ meta, bam ] }
-    if (!params.skip_markdup) {
+    if (markdup) {
         SAMTOOLS_MARKDUP (
             ch_non_umi_bam,
             channel.value([ [], [], [] ])
@@ -232,14 +234,14 @@ workflow ALIGN_READS {
     def ch_transcript_bam_bai = channel.empty()
     if (!transcriptome && !params.count_genome) {
         // QNAME reconciliation only matters when the genome BAM lost reads to dedup: UMI samples
-        // (UMITOOLS_DEDUP) or non-UMI samples with markdup enabled. Non-UMI + skip_markdup keeps every
+        // (UMITOOLS_DEDUP) or non-UMI samples with markdup enabled. Non-UMI without markdup keeps every
         // read, so filtering the transcript BAM by the full QNAME set is a costly no-op — bypass it.
         def ch_transcript_branches = ch_transcript_bam_raw.branch { meta, _bam ->
-            recon:    (meta.umi_pattern ?: '').toString().trim() || !params.skip_markdup
-            passthru: !((meta.umi_pattern ?: '').toString().trim() || !params.skip_markdup)
+            recon:    (meta.umi_pattern ?: '').toString().trim() || markdup
+            passthru: !((meta.umi_pattern ?: '').toString().trim() || markdup)
         }
 
-        SAMTOOLS_QNAMES(ch_dedup_bam.filter { meta, _bam -> (meta.umi_pattern ?: '').toString().trim() || !params.skip_markdup })
+        SAMTOOLS_QNAMES(ch_dedup_bam.filter { meta, _bam -> (meta.umi_pattern ?: '').toString().trim() || markdup })
 
         def ch_view_split = ch_transcript_branches.recon
             .map { meta, bam -> [ meta.id.toString(), meta, bam ] }

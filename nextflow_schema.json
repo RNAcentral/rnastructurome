@@ -145,10 +145,14 @@
                     "type": "string",
                     "description": "Fallback UMI pattern for rows missing `umi_pattern`. Supplying a pattern enables umi_tools extract before cutadapt."
                 },
+                "exact_untreated_pairing": {
+                    "type": "boolean",
+                    "description": "Require an exact `sample_group`+`replicate` match when pairing treated samples with untreated/denatured controls. By default, a treated group with no exact match falls back to the control whose `sample_group` shares the longest leading substring with it (see the usage docs). With this set, unmatched treated groups proceed without an untreated control (scoring method 2 or 4)."
+                },
                 "fuzzy_untreated_pairing": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "When true (default), a treated group with no exact `sample_group`+`replicate` untreated match falls back to the untreated whose `sample_group` shares the longest leading token prefix with it — e.g. `HFF_infected_HCMV_05hpi` prefers `HFF_infected_HCMV_72hpi` (3 shared tokens) over `HFF_uninfected` (1), while `MDA-MB-231_untreated_r1` still serves `MDA-MB-231_MTX_treated_r1`. Among equally close candidates the same replicate wins; if none matches the replicate but the closest arm has exactly one untreated, that control is reused across replicates. Genuine ties error. Denatured controls resolve the same way, except that a group only inherits one if it already has an untreated. A control is never borrowed from a group sharing no leading token, so unrelated samples are not paired and such a treated group is left without a control. Set false to require exact matches; unmatched treated groups then proceed without an untreated control (scoring method 2 or 4)."
+                    "description": "Deprecated: use `--exact_untreated_pairing` (inverted).",
+                    "hidden": true
                 }
             }
         },
@@ -328,10 +332,14 @@
                     "type": "boolean",
                     "description": "Allow dovetailing mates (`--dovetail`)."
                 },
+                "markdup": {
+                    "type": "boolean",
+                    "description": "Run SAMtools markdup deduplication on non-UMI libraries. Off by default: position-based duplicate removal is not valid for chemical-probing libraries without UMIs, where reads sharing a 5' start are independent RT events rather than PCR duplicates. UMI libraries are always deduplicated via UMI-tools."
+                },
                 "skip_markdup": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Skip SAMtools markdup deduplication (default: true). Position-based duplicate removal is not valid for chemical-probing libraries without UMIs, where reads sharing a 5' start are independent RT events rather than PCR duplicates. Leave enabled; UMI libraries are still deduplicated via UMI-tools. Set false only if you have a specific reason."
+                    "description": "Deprecated: use `--markdup` (inverted).",
+                    "hidden": true
                 },
                 "star_map_sjdb_overhang": {
                     "default": 200,
@@ -388,7 +396,7 @@
                 "rfcount_genome_samtools_threads": {
                     "type": "integer",
                     "minimum": 1,
-                    "description": "SAMtools working threads per processor instance in rf-count-genome (`-wt`); total threads = `-p` \u00d7 `-wt`.",
+                    "description": "SAMtools working threads per processor instance in rf-count-genome (`-wt`); total threads = `-p` × `-wt`.",
                     "default": 1
                 },
                 "rfcount_map_median_quality": {
@@ -420,7 +428,7 @@
                 },
                 "rfcount_map_eval_surrounding": {
                     "type": "boolean",
-                    "description": "MaP only: also evaluate quality of \u00b11 nt surrounding each mutation (`-es`).",
+                    "description": "MaP only: also evaluate quality of ±1 nt surrounding each mutation (`-es`).",
                     "default": true
                 },
                 "rfcount_trim_5prime": {

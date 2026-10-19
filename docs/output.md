@@ -490,7 +490,7 @@ The standard MultiQC table, aggregating key per-sample metrics (read counts, dup
 
 #### Count Progression
 
-Per sample: reads mapped before and after deduplication, the fraction removed, and the number of transcripts `rf-count` covered. With the default `--skip_markdup true` (no UMIs) nothing is deduplicated, so "Removed by Dedup" is `0.0%`.
+Per sample: reads mapped before and after deduplication, the fraction removed, and the number of transcripts `rf-count` covered. Without UMIs or `--markdup` nothing is deduplicated, so "Removed by Dedup" is `0.0%`.
 
 ![MultiQC Count Progression table](images-for-output/multiqc-count-progression.png)
 
