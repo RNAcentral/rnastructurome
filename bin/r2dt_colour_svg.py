@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """
 Overlay SHAPE / chemical-probing reactivities onto R2DT SVG diagrams.
 

@@ -1,4 +1,6 @@
 #!/usr/bin/awk -f
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 # Parse the rf-count / rf-count-genome console summary table into a one-row TSV.
 #
 # Variables (pass with -v):

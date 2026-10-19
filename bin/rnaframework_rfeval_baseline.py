@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Build a circular-rotation baseline reactivity set for rf-eval.
 
 Each decoy keeps a structure and its reactivity values but rotates the profile

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Colour a ViennaRNA RNAplot SVG with SHAPE reactivity bubbles.
 
 Matches the RNAframework (Interface/ViennaRNA.pm) visual style:

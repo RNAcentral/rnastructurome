@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 set -euo pipefail
 
 # Check for transcripts expected but absent from rf-fold output.

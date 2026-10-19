@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 set -euo pipefail
 
 # Mirror a fold output directory into a publish directory using hard links where possible.

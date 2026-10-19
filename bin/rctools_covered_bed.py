@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Build a 4-column BED of covered transcripts and their spliced lengths from a GTF.
 
 Reads transcript IDs (one per line) from covered_ids.txt in the working directory and

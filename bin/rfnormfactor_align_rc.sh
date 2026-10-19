@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 # rfnormfactor_align_rc.sh — align a set of RNA Framework RC files to their common transcript set.
 #
 # rf-normfactor requires every input RC file to contain the SAME transcript set (it errors with

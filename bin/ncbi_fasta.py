@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Download transcript FASTA sequences from NCBI Entrez by accession list or organism name."""
 from __future__ import annotations
 
