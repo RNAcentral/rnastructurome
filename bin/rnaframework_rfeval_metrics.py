@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Merge rf-eval metrics with its rotation baseline into one publishable table.
 
 Only AUROC has a fixed chance level (0.5); DSCI and the unpaired coefficient

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Convert RNAframework XML + rf-fold .db files to RDAT format."""
 from __future__ import annotations
 

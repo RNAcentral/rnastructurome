@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 set -euo pipefail
 
 # Deduplicate XML files staged from multiple replicates into unique_xml/.

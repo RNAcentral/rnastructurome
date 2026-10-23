@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Extract per-position reactivities for a transcript from RNAframework XML files.
 
 Averages values across replicates; positions with no data across all replicates are

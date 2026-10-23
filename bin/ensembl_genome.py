@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Download soft-masked genome FASTA from Ensembl FTP for one species."""
 from __future__ import annotations
 

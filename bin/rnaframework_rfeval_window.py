@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Window rf-norm XML reactivities to user-supplied reference-structure regions.
 
 rf-eval compares a reference structure to reactivities position-by-position over

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 # rfnormfactor_align_rc.sh — align a set of RNA Framework RC files to their common transcript set.
 #
 # rf-normfactor requires every input RC file to contain the SAME transcript set (it errors with
@@ -26,7 +28,7 @@ idlen() { rf-rctools view "$1" | awk 'NF==0{l=0;next}{l++} l==1{id=$0} l==2{len=
 
 first=1
 for rc in "$@"; do
-    rf-rctools index "$rc" >/dev/null 2>&1 || true
+    rf-rctools index "${rc}" >/dev/null
     # One view pass per file: capture id<TAB>len, then derive the id list from column 1.
     idlen "$rc" > idlen.txt
     cut -f1 idlen.txt > ids.txt

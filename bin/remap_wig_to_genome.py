@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """Remap RNAframework transcript-coordinate WIG tracks to genomic WIG tracks.
 
 RNAframework emits reactivity and Shannon entropy WIG files keyed by transcript

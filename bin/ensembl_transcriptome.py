@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 from __future__ import annotations
 
 import argparse

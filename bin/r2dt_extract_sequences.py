@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Author: Victoria Begley (begley@ebi.ac.uk)
+# License: MIT
 """
 Extract FASTA sequences from rf-fold dotbracket output for R2DT template search.
 
