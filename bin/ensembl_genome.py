@@ -133,7 +133,16 @@ def _find_species_genome(base_url: str, release: str, species: str) -> tuple[str
         except Exception:
             continue
         all_dirs = re.findall(r'href="([a-z][a-z0-9_]+)/"', listing)
-        for d in sorted(d for d in all_dirs if d == species or d.startswith(prefix)):
+        candidates = sorted(d for d in all_dirs if d == species or d.startswith(prefix))
+        # EnsemblGenomes divisions such as fungi nest species in <division>_<group>_collection/ dirs
+        for collection in sorted(d for d in all_dirs if re.match(r"[a-z]+_[a-z0-9]+_collection$", d)):
+            try:
+                coll_listing = fetch_text(f"{root}{collection}/", timeout=30)
+            except Exception:
+                continue
+            coll_dirs = re.findall(r'href="([a-z][a-z0-9_]+)/"', coll_listing)
+            candidates += [f"{collection}/{d}" for d in sorted(coll_dirs) if d == species or d.startswith(prefix)]
+        for d in candidates:
             url = _find_genome_in_dna_dir(f"{src_url}/{src_release_path}/{d}/dna/")
             if url:
                 print(

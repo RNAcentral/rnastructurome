@@ -130,6 +130,35 @@ def _try_bacteria(release: str, species: str) -> tuple[str, str]:
     )
 
 
+def _try_eg_collections(release: str, species: str) -> tuple[str, str, str]:
+    """Search EnsemblGenomes <division>_<group>_collection/ dirs (e.g. fungi) for *species* or a
+    strain/assembly-suffixed variant; return (species_root_url, gtf_name, division_name)."""
+    release_path = release_path_for_value(release)
+    prefix = f"{species}_"
+    for division_name, division_base in _EG_FLAT_DIVISIONS:
+        root = f"{division_base}/{release_path}/"
+        try:
+            listing = fetch_text(root, timeout=30)
+        except Exception:
+            continue
+        all_dirs = re.findall(r'href="([a-z][a-z0-9_]+)/"', listing)
+        for collection in sorted(d for d in all_dirs if re.match(r"[a-z]+_[a-z0-9]+_collection$", d)):
+            try:
+                coll_listing = fetch_text(f"{root}{collection}/", timeout=30)
+            except Exception:
+                continue
+            coll_dirs = re.findall(r'href="([a-z][a-z0-9_]+)/"', coll_listing)
+            for d in sorted(d for d in coll_dirs if d == species or d.startswith(prefix)):
+                species_root = f"{root}{collection}/{d}/"
+                try:
+                    gtf_name = _find_gtf_in_listing(species_root, timeout=10)
+                except (EnsemblSpeciesNotFound, RuntimeError):
+                    continue
+                print(f"[ENSEMBL_GTF] '{species}' matched '{collection}/{d}' on EnsemblGenomes/{division_name}.", file=sys.stderr)
+                return species_root, gtf_name, division_name
+    raise EnsemblSpeciesNotFound(f"Species '{species}' GTF not found in any EnsemblGenomes collection")
+
+
 def _find_species(base_url: str, release: str, species: str) -> tuple[str, str, str]:
     """Try every Ensembl source in priority order.
 
@@ -147,6 +176,12 @@ def _find_species(base_url: str, release: str, species: str) -> tuple[str, str, 
             return species_root, gtf_name, f"EnsemblGenomes/{division_name}"
         except EnsemblSpeciesNotFound:
             continue
+
+    try:
+        species_root, gtf_name, division_name = _try_eg_collections(release, species)
+        return species_root, gtf_name, f"EnsemblGenomes/{division_name}"
+    except EnsemblSpeciesNotFound:
+        pass
 
     try:
         species_root, gtf_name = _try_bacteria(release, species)

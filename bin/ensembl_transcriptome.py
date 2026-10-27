@@ -111,7 +111,7 @@ def _prefix_candidates(base_url: str, release: str, prefix: str) -> list[tuple[s
 
     Handles both flat FTP layouts (species directly under the release directory)
     and collection-based layouts where species are nested inside
-    name_N_collection/ subdirectories (as used by EnsemblBacteria).
+    name_N_collection/ or <division>_<group>_collection/ subdirectories (EnsemblBacteria, EnsemblGenomes fungi).
     prefix should be '{species}_' so that both exact names and
     strain/subspecies-suffixed variants are matched.
     """
@@ -125,7 +125,7 @@ def _prefix_candidates(base_url: str, release: str, prefix: str) -> list[tuple[s
     results: list[tuple[str | None, str]] = [
         (None, d) for d in sorted(all_dirs) if d == exact or d.startswith(prefix)
     ]
-    collections = [d for d in all_dirs if re.match(r'[a-z]+_\d+_collection$', d)]
+    collections = [d for d in all_dirs if re.match(r'[a-z]+_[a-z0-9]+_collection$', d)]
     for collection in sorted(collections):
         try:
             coll_listing = fetch_text(f"{root}{collection}/", timeout=30)

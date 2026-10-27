@@ -156,3 +156,29 @@ def test_find_species_genome_not_found():
             eg._find_species_genome(
                 "https://ftp.ensembl.org/pub", "current", "unknown_species"
             )
+
+
+# ---------------------------------------------------------------------------
+# _find_species_genome — EnsemblGenomes collection fallback (e.g. fungi)
+# ---------------------------------------------------------------------------
+
+def test_find_species_genome_collection_fallback():
+    genome_file = "Kluyveromyces_lactis_gca_000002515.ASM251v1.dna_sm.toplevel.fa.gz"
+    fungi_root = "https://ftp.ensemblgenomes.ebi.ac.uk/pub/fungi/current/fasta/"
+
+    def fake_fetch(url, timeout=60):
+        if url == fungi_root:
+            return _species_listing("fungi_ascomycota1_collection", "fungi_basidiomycota1_collection")
+        if url == f"{fungi_root}fungi_ascomycota1_collection/":
+            return _species_listing("kluyveromyces_lactis_gca_000002515", "candida_albicans")
+        if url == f"{fungi_root}fungi_ascomycota1_collection/kluyveromyces_lactis_gca_000002515/dna/":
+            return _dir_html(genome_file)
+        raise eg.EnsemblSpeciesNotFound(f"404 {url}")
+
+    with patch.object(eg, "fetch_text", side_effect=fake_fetch):
+        url, division = eg._find_species_genome(
+            "https://ftp.ensembl.org/pub", "current", "kluyveromyces_lactis"
+        )
+
+    assert url == f"{fungi_root}fungi_ascomycota1_collection/kluyveromyces_lactis_gca_000002515/dna/{genome_file}"
+    assert division == "EnsemblGenomes/fungi"
