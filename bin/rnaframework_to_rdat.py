@@ -36,6 +36,7 @@ class RdatRecord:
     dot_bracket: str
     reactivities: list[float | None]
     reactivity_errors: list[float | None] | None = None
+    modifier: str | None = None
     comments: list[str] = field(default_factory=list)
 
 
@@ -55,6 +56,11 @@ def parse_args() -> argparse.Namespace:
         "--fasta", default=None, help="Transcript FASTA used for alignment and counting"
     )
     parser.add_argument("--pipeline-version", default=None, help="Pipeline version string")
+    parser.add_argument(
+        "--modifier",
+        default=None,
+        help="Probing reagent (the samplesheet chemical) written as the RDAT modifier; omitted when empty",
+    )
     parser.add_argument(
         "--principle", default=None, help="Probing principle (RT-stop or MaP)"
     )
@@ -184,7 +190,8 @@ def write_rdat(out_path: Path, record: RdatRecord) -> None:
         fh.write(f"NAME\t{record.transcript_id}\n")
         fh.write(f"SEQUENCE\t{record.rna_sequence}\n")
         fh.write(f"STRUCTURE\t{record.dot_bracket}\n")
-        fh.write("ANNOTATION_DATA:1\tmodifier:DMS\n")
+        if record.modifier:
+            fh.write(f"ANNOTATION_DATA:1\tmodifier:{record.modifier}\n")
         fh.write(f"REACTIVITY\t{fmt(padded_reactivities[:length])}\n")
         if record.reactivity_errors is not None:
             padded_errors = list(record.reactivity_errors) + [None] * max(
@@ -279,6 +286,7 @@ def main() -> int:
                     dot_bracket=dot_bracket,
                     reactivities=aggregated_reactivities,
                     reactivity_errors=reactivity_errors,
+                    modifier=(args.modifier or "").strip() or None,
                     comments=comments,
                 ),
             )
