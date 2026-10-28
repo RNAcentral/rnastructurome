@@ -19,6 +19,7 @@ process RNAFRAMEWORK_TORDAT {
     def fasta_str  = meta.fasta_name ?: 'unknown'
     def gtf_str    = meta.gtf_name   ?: ''
     def principle  = meta.principle  ?: ''
+    def modifier   = meta.chemical   ?: ''
     def scoring_sm = meta.rfnorm_scoring_method != null ? meta.rfnorm_scoring_method.toString() : ''
     def norm_nm    = meta.rfnorm_norm_method    != null ? meta.rfnorm_norm_method.toString()    : ''
     def extra_args = task.ext.args ?: ''
@@ -31,6 +32,7 @@ process RNAFRAMEWORK_TORDAT {
         --fasta "${fasta_str}" \\
         ${gtf_arg} \\
         --principle "${principle}" \\
+        --modifier "${modifier}" \\
         --rfnorm-scoring-method "${scoring_sm}" \\
         --rfnorm-norm-method "${norm_nm}" \\
         ${extra_args}

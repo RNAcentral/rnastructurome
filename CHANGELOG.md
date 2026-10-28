@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Fixed`
 
+- RDAT files now name the samplesheet `chemical` as their `modifier` instead of always `DMS`; groups with no `chemical` get no modifier annotation.
+
 ### `Dependencies`
 
 ### `Deprecated`

@@ -42,8 +42,37 @@ nextflow_process {
                     assert values[2] == 'NaN'
                     assert values[9] == '1'
                     assert !lines.any { it.startsWith('REACTIVITY_ERROR\t') }
+                    assert !lines.any { it.startsWith('ANNOTATION_DATA:1\tmodifier:') }
                 },
                 { assert process.out.versions_python[0][1] == 'python' && process.out.versions_python[0][2] }
+            )
+        }
+    }
+
+    test("tordat - writes the samplesheet chemical as the RDAT modifier") {
+
+        when {
+            process {
+                """
+                input[0] = Channel.of([
+                    [ id:'group1', chemical:'NAI' ],
+                    file("${projectDir}/modules/local/tordat/tests/fixtures/xml/TX1.xml", checkIfExists: true),
+                    file("${projectDir}/modules/local/tordat/tests/fixtures/fold_group", type: 'dir', checkIfExists: true)
+                ])
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                {
+                    def rdatOut = process.out.rdat[0][1]
+                    def fileList = rdatOut instanceof List ? rdatOut : [rdatOut]
+                    def lines = path(fileList[0].toString()).text.readLines()
+                    assert lines.any { it == 'ANNOTATION_DATA:1\tmodifier:NAI' }
+                    assert !lines.any { it == 'ANNOTATION_DATA:1\tmodifier:DMS' }
+                }
             )
         }
     }
