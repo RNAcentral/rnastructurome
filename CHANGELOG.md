@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Fixed`
 
+- A gzipped local `--gtf` now goes through `GTF_SANITIZE`, which writes it out as plain text, for every organism. Before, only yeast did, so on the genome route gffread wrote an empty transcript FASTA and STAR rejected the GTF.
+
 ### `Dependencies`
 
 ### `Deprecated`
