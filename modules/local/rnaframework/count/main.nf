@@ -29,9 +29,10 @@ process RNAFRAMEWORK_RFCOUNT {
     // Mirrors the -m (mutation mode) decision in conf/modules.config, so the summary parser knows
     // which rf-count table layout to expect (MaP has a Mutated-alignments column; RT-stop does not).
     def is_map = ((meta.principle ?: '').toLowerCase() == 'map') ? '1' : '0'
+    def min_reads = task.ext.min_reads ?: 1
     """
-    # rf-count runs samtools once per FASTA entry, so keep only references with reads.
-    samtools idxstats "${bam}" | awk '\$3 > 0 { print \$1 }' > covered_refs.txt
+    # rf-count runs samtools once per FASTA entry, so keep only references with at least ${min_reads} read(s).
+    samtools idxstats "${bam}" | awk '\$3 >= ${min_reads} { print \$1 }' > covered_refs.txt
     awk 'NR == FNR { keep[\$1]; next } /^>/ { p = (substr(\$1, 2) in keep) } p' covered_refs.txt "${fasta}" > covered.fa
     FASTA_PATH="covered.fa"
 

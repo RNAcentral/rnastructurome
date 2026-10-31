@@ -453,6 +453,13 @@
                     "description": "Discard reads with excessive 5' or 3' end clipping in rf-count / rf-count-genome (`--discard-clipped-reads`).",
                     "default": false
                 },
+                "rfcount_min_reads": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Count only references with at least this many alignments in rf-count. Ignored with `--count_genome true`.",
+                    "help_text": "rf-count splits the BAM with one `samtools view` per reference, and each call loads the whole header and index, so a whole-transcriptome run with hundreds of thousands of covered transcripts can take a week. Shallow transcripts give no usable reactivities anyway; `1000` is a reasonable cut for MaP data on a large transcriptome.",
+                    "default": 1
+                },
                 "rfcount_map_max_coverage": {
                     "type": "integer",
                     "minimum": 1000,
