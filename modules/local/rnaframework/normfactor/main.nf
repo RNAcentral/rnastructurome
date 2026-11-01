@@ -40,7 +40,10 @@ process RNAFRAMEWORK_RFNORMFACTOR {
     # the UNIQUE staged RC files to their common transcript set by re-extracting them
     # (see bin/rfnormfactor_align_rc.sh); transcript order is identical across outputs.
     align_files=(${alignNames.collect { n -> "\"${n}\"" }.join(' ')})
+    set +e
     rfnormfactor_align_rc.sh "${prefix}" aligned "\${align_files[@]}"
+    align_status=\$?
+    set -e
 
     # Build the positionally-paired -t/-u/-d lists from the meta order (repeats a shared control once
     # per treated sample). Each name points at its aligned copy; repeats reuse the same aligned file.
@@ -58,16 +61,21 @@ process RNAFRAMEWORK_RFNORMFACTOR {
     # across all samples" when no base meets -mc across every sample). Cross-experiment normalisation
     # is auto-enabled, so a shortfall must NOT break the run — capture the status, warn, and emit no
     # factor file. The subworkflow then leaves rf-norm to normalise this reference per-sample.
+    # No transcript covered in every sample (e.g. each sample probed one segment alone) is the same shortfall.
     set +e
-    rf-normfactor \\
-        -p ${task.cpus} \\
-        -o ${prefix}.norm_factors.txt \\
-        -ow \\
-        ${args} \\
-        \${treated_arg} \\
-        \${untreated_arg} \\
-        \${denatured_arg} 2>&1 | tee "\${rfnormfactor_log_tmp}"
-    nf_status="\${PIPESTATUS[0]}"
+    if [[ "\${align_status}" -eq 0 ]]; then
+        rf-normfactor \\
+            -p ${task.cpus} \\
+            -o ${prefix}.norm_factors.txt \\
+            -ow \\
+            ${args} \\
+            \${treated_arg} \\
+            \${untreated_arg} \\
+            \${denatured_arg} 2>&1 | tee "\${rfnormfactor_log_tmp}"
+        nf_status="\${PIPESTATUS[0]}"
+    else
+        nf_status="\${align_status}"
+    fi
     set -e
 
     mv "\${rfnormfactor_log_tmp}" ${prefix}.rfnormfactor.log || true
