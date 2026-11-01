@@ -169,7 +169,7 @@ Other parameters worth knowing about:
 
 `--rfcount_primary_only` restricts counting to alignments marked as primary. This is most relevant when the aligner emits multiple records per read, such as STAR multimappers or Bowtie2 `--bowtie_all`/`-k` output; otherwise a read can contribute to more than one locus or transcript. For Bowtie v1 `--bowtie_all`, use `--bowtie_all false` and `--bowtie_k` if you need stricter one-alignment-per-read reporting.
 
-`--rfcount_min_reads` counts only the transcripts with at least this many alignments. rf-count runs one `samtools view` per transcript, so a whole-transcriptome run with hundreds of thousands of covered transcripts can take a week. Unset, it is rf-norm's `-n` coverage (`--rfnorm_nan`, else 1000 for MaP and 50 for RT-stop): a base's coverage cannot exceed its transcript's read count, so the transcripts dropped could not have had a single reactivity value. It is ignored with `--count_genome true`.
+rf-count only counts transcripts with at least as many reads as the lower of `--rfnorm_nan` and `--rfnorm_normfactor_min_coverage` (by default 1000 for MaP and 50 for RT-stop). A base's coverage cannot exceed its transcript's read count, so the transcripts skipped could not have had a value in rf-norm or rf-normfactor; lowering either option lowers this filter with it. It does not apply with `--count_genome true`.
 
 `--rfcount_map_max_coverage` caps the coverage of each transcript in MaP samples which is helpful when transcripts are sequenced to extreme depths. Only transcripts above the cap are downsampled; `20000` is recommended, with a minimum of `1000` allowed. It is ignored with `--count_genome true`, because `rf-count-genome` has no such option.
 

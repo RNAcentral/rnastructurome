@@ -44,9 +44,10 @@ process RNAFRAMEWORK_RFCOUNT {
 
     set -o pipefail
     set +e
+    # -p runs the per-transcript BAM splits (paired-end --sort-by-read-name) in parallel; with -p 1 they ran one at a time
     rf-count \\
-        -p 1 \\
-        -wt ${task.cpus} \\
+        -p ${task.cpus} \\
+        -wt 1 \\
         -f "\${FASTA_PATH}" \\
         -o ${outdir} \\
         -ow \\
