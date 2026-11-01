@@ -584,7 +584,7 @@ def parseRfcountSummaryRow(summaryFile) {
 // process — java.util.zip is available directly in Nextflow's Groovy runtime. Returns the names of
 // any `allowlist` modules that are present and FAIL; ignores WARN and modules absent from the file
 // (e.g. "Per tile sequence quality" is commonly missing for reads without Illumina tile coordinates).
-def parseFastqcSummary(zipFile, List<String> allowlist) {
+def parseFastqcSummary(zipFile, List<String> allowlist, minQualityFailReadsPct = 0) {
     def zip = new java.util.zip.ZipFile(zipFile.toString())
     def entry = zip.entries().find { e -> e.name.endsWith('/summary.txt') }
     if (!entry) {
@@ -600,15 +600,55 @@ def parseFastqcSummary(zipFile, List<String> allowlist) {
             }
         }
     }
+    // A per-base quality FAIL carried only by a sparse tail of long reads (pre-trimmed, variable-length uploads) is dropped
+    if (minQualityFailReadsPct > 0 && fails.contains('Per base sequence quality') && fastqcQualityFailReadsPct(zip) < minQualityFailReadsPct) {
+        fails.remove('Per base sequence quality')
+    }
     zip.close()
     fails
 }
 
+// % of reads long enough to reach the first position FastQC fails on per-base quality (median < 20 or lower quartile < 5)
+def fastqcQualityFailReadsPct(zip) {
+    def entry = zip.entries().find { e -> e.name.endsWith('/fastqc_data.txt') }
+    if (!entry) {
+        return 100.0d
+    }
+    def module = null
+    def firstFail = null
+    def lengthBins = []
+    zip.getInputStream(entry).withReader { reader ->
+        reader.eachLine { line ->
+            if (line.startsWith('>>')) {
+                module = line.substring(2).split('\t')[0]
+                return
+            }
+            if (line.startsWith('#')) {
+                return
+            }
+            def fields = line.split('\t')
+            def bounds = fields[0].tokenize('-')
+            if (module == 'Per base sequence quality' && firstFail == null && ((fields[3] as double) < 5 || (fields[2] as double) < 20)) {
+                firstFail = bounds[0] as int
+            }
+            if (module == 'Sequence Length Distribution') {
+                lengthBins << [ (bounds[-1] as int), (fields[1] as double) ]
+            }
+        }
+    }
+    def total = lengthBins.sum { bin -> bin[1] } ?: 0
+    if (firstFail == null || total == 0) {
+        return 100.0d
+    }
+    // A length bin counts if its upper bound reaches the failing position, which errs towards failing
+    100.0d * (lengthBins.findAll { bin -> bin[0] >= firstFail }.sum { bin -> bin[1] } ?: 0) / total
+}
+
 // Gates on read 1 only: read 2 of a pair fails several modules on otherwise clean data (adapter
 // read-through, low-Q tails, per-tile flowcell artefacts). Its results still reach MultiQC.
-def fastqcGateFails(zips, List<String> allowlist) {
+def fastqcGateFails(zips, List<String> allowlist, minQualityFailReadsPct = 0) {
     def read1 = (zips instanceof List) ? zips.min { zip -> zip.name } : zips
-    parseFastqcSummary(read1, allowlist)
+    parseFastqcSummary(read1, allowlist, minQualityFailReadsPct)
 }
 
 // Shared --rnacentral QC gate: a no-op unless params.rnacentral is set. On failure, writes the

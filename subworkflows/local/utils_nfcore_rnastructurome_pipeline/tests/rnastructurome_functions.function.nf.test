@@ -562,6 +562,76 @@ nextflow_function {
         then { assert function.success; assert function.result == [] }
     }
 
+    test("parseFastqcSummary drops a per-base quality FAIL that too few reads reach") {
+        function "parseFastqcSummary"
+        when {
+            function {
+                """
+                def zipFile = File.createTempFile('tail_fastqc', '.zip')
+                new java.util.zip.ZipOutputStream(zipFile.newOutputStream()).with { zos ->
+                    zos.putNextEntry(new java.util.zip.ZipEntry('tail_fastqc/summary.txt'))
+                    zos.write("FAIL\\tPer base sequence quality\\ttail.fastq.gz\\n".bytes)
+                    zos.closeEntry()
+                    zos.putNextEntry(new java.util.zip.ZipEntry('tail_fastqc/fastqc_data.txt'))
+                    zos.write((
+                        ">>Per base sequence quality\\tfail\\n" +
+                        "#Base\\tMean\\tMedian\\tLower Quartile\\tUpper Quartile\\t10th Percentile\\t90th Percentile\\n" +
+                        "1\\t36.0\\t38.0\\t38.0\\t38.0\\t37.0\\t38.0\\n" +
+                        "275-279\\t25.5\\t32.8\\t10.0\\t37.0\\t8.4\\t37.4\\n" +
+                        "280-284\\t21.7\\t18.4\\t8.0\\t37.0\\t7.2\\t37.0\\n" +
+                        ">>END_MODULE\\n" +
+                        ">>Sequence Length Distribution\\twarn\\n" +
+                        "#Length\\tCount\\n" +
+                        "100-104\\t990.0\\n" +
+                        "280-284\\t10.0\\n" +
+                        ">>END_MODULE\\n"
+                    ).bytes)
+                    zos.closeEntry()
+                    zos.close()
+                }
+                input[0] = zipFile
+                input[1] = ['Per base sequence quality']
+                input[2] = 5.0
+                """
+            }
+        }
+        then { assert function.success; assert function.result == [] }
+    }
+
+    test("parseFastqcSummary keeps a per-base quality FAIL that most reads reach") {
+        function "parseFastqcSummary"
+        when {
+            function {
+                """
+                def zipFile = File.createTempFile('broad_fastqc', '.zip')
+                new java.util.zip.ZipOutputStream(zipFile.newOutputStream()).with { zos ->
+                    zos.putNextEntry(new java.util.zip.ZipEntry('broad_fastqc/summary.txt'))
+                    zos.write("FAIL\\tPer base sequence quality\\tbroad.fastq.gz\\n".bytes)
+                    zos.closeEntry()
+                    zos.putNextEntry(new java.util.zip.ZipEntry('broad_fastqc/fastqc_data.txt'))
+                    zos.write((
+                        ">>Per base sequence quality\\tfail\\n" +
+                        "#Base\\tMean\\tMedian\\tLower Quartile\\tUpper Quartile\\t10th Percentile\\t90th Percentile\\n" +
+                        "1\\t36.0\\t38.0\\t38.0\\t38.0\\t37.0\\t38.0\\n" +
+                        "50-54\\t18.0\\t17.0\\t4.0\\t30.0\\t2.0\\t34.0\\n" +
+                        ">>END_MODULE\\n" +
+                        ">>Sequence Length Distribution\\tpass\\n" +
+                        "#Length\\tCount\\n" +
+                        "150\\t1000.0\\n" +
+                        ">>END_MODULE\\n"
+                    ).bytes)
+                    zos.closeEntry()
+                    zos.close()
+                }
+                input[0] = zipFile
+                input[1] = ['Per base sequence quality']
+                input[2] = 5.0
+                """
+            }
+        }
+        then { assert function.success; assert function.result == [ 'Per base sequence quality' ] }
+    }
+
     test("fastqcGateFails ignores read 2 of a pair") {
         function "fastqcGateFails"
         when {

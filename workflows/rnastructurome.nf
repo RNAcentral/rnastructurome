@@ -79,7 +79,10 @@ workflow RNASTRUCTUROME {
         if (params.rnacentral) {
             def tileFails = fastqcGateFails(zips, ['Per tile sequence quality'])
             rnacentralQcWarn('FastQC', tileFails.isEmpty(), "${meta.id}: ${tileFails}")
-            def fails = fastqcGateFails(zips, RNACENTRAL_FASTQC_ALLOWLIST)
+            def fails = fastqcGateFails(zips, RNACENTRAL_FASTQC_ALLOWLIST, params.rnacentral_fastqc_quality_min_reads_pct)
+            // Per-base quality FAILs that only a sparse long-read tail reaches warn instead of failing
+            def tailFails = fastqcGateFails(zips, ['Per base sequence quality']) - fails
+            rnacentralQcWarn('FastQC', tailFails.isEmpty(), "${meta.id}: ${tailFails} only on positions reached by fewer than ${params.rnacentral_fastqc_quality_min_reads_pct}% of reads")
             rnacentralQcGate('FastQC', fails.isEmpty(), "${meta.id}: ${fails.unique()}")
         }
         [ meta, zips ]

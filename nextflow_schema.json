@@ -859,6 +859,13 @@
                     "description": "Abort the run immediately on the first failing QC check (post-trim FastQC, mapped read %, replicate correlation, rf-count reactivity signal), instead of only reporting it in MultiQC.",
                     "default": false
                 },
+                "rnacentral_fastqc_quality_min_reads_pct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "A post-trim FastQC per-base sequence quality FAIL only aborts the --rnacentral QC gate if at least this % of read 1 reaches the first failing position; below it, the failure only warns. 0 makes every per-base quality FAIL abort.",
+                    "default": 5.0
+                },
                 "rnacentral_min_mapped_pct": {
                     "type": "number",
                     "minimum": 0,
