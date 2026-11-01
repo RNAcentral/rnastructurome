@@ -119,7 +119,10 @@ def main():
     for msg in skipped:
         print(f"[rfeval-window] skip {msg}", file=sys.stderr)
     if not written:
-        sys.exit("no windows written; check that ref_seq_id values match XML names")
+        # a sample whose profiles cover none of the reference records gets no rf-eval score, not a failed run
+        print("[rfeval-window] no windows written: no profile covers a reference structure "
+              "(or ref_seq_id values do not match XML names)", file=sys.stderr)
+        return
     print(f"[rfeval-window] wrote {written} window(s) to {args.outdir}")
 
 

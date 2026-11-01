@@ -26,7 +26,7 @@ include {
     resolveReferenceKey
     parseFlagstatMappedReads
     parseFlagstatMappedPct
-    parseCoverageMinMeanDepth
+    parseCoverageMeanDepth
     isSmallReference
     parseRfcountCoveredTranscripts
     parseRfcountSummaryRow
@@ -232,8 +232,9 @@ workflow RNASTRUCTUROME {
             channel.value([ [], [], [] ])
         )
         SAMTOOLS_COVERAGE.out.coverage.map { meta, coverage ->
-            def (contig, depth) = parseCoverageMinMeanDepth(coverage)
-            rnacentralQcGate('Mean read depth', depth >= params.rnacentral_min_mean_depth, "${meta.id} at ${depth}x on ${contig} (< ${params.rnacentral_min_mean_depth}x)")
+            def (depth, contig, contigDepth) = parseCoverageMeanDepth(coverage)
+            rnacentralQcWarn('Mean read depth per record', contigDepth >= params.rnacentral_min_mean_depth, "${meta.id} at ${contigDepth}x on ${contig} (< ${params.rnacentral_min_mean_depth}x)")
+            rnacentralQcGate('Mean read depth', depth >= params.rnacentral_min_mean_depth, "${meta.id} at ${depth}x over the reference (< ${params.rnacentral_min_mean_depth}x)")
         }
     }
 

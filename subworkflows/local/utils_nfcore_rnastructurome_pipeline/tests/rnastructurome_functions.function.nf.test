@@ -428,8 +428,8 @@ nextflow_function {
         then { assert function.success; assert function.result == false }
     }
 
-    test("parseCoverageMinMeanDepth returns the least-covered contig of a segmented genome") {
-        function "parseCoverageMinMeanDepth"
+    test("parseCoverageMeanDepth returns the length-weighted depth and the least-covered contig of a segmented genome") {
+        function "parseCoverageMeanDepth"
         when {
             function {
                 """
@@ -444,11 +444,11 @@ nextflow_function {
                 """
             }
         }
-        then { assert function.success; assert function.result == [ 'NC_002016.1', 29.2 ] }
+        then { assert function.success; assert function.result == [ 15883.8, 'NC_002016.1', 29.2 ] }
     }
 
-    test("parseCoverageMinMeanDepth fails on a header-only file") {
-        function "parseCoverageMinMeanDepth"
+    test("parseCoverageMeanDepth fails on a header-only file") {
+        function "parseCoverageMeanDepth"
         when {
             function {
                 """

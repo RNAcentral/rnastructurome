@@ -71,6 +71,15 @@ process RNAFRAMEWORK_RFEVAL {
 
     ${window_cmd}
 
+    # no reference structure lies on this sample's profiles (e.g. its only scored segments fell below coverage): report zero structures
+    if ${windows ? "! ls ${prefix}_rfeval_windows/*.xml > /dev/null 2>&1" : 'false'}; then
+        mkdir -p ${prefix}_rfeval
+        printf 'structure\\tcoeff_unpaired\\tdsci\\tauroc\\n' > ${prefix}_rfeval/${prefix}_rfeval.metrics.tsv
+        printf 'No reference structure lies on a profile of this sample; rf-eval skipped.\\n' > ${prefix}_rfeval/rfeval.log
+        rm -f "\${log_tmp}"
+        exit 0
+    fi
+
     printf '===== rf-eval: reference structures =====\\n' >> "\${log_tmp}"
 
     # -no is required: the pooled "Overall" stats divide by zero when every reference

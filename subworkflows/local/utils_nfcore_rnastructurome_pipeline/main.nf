@@ -521,14 +521,18 @@ def isSmallReference(meta, refMap) {
     fasta.size() < 1_000_000 && fasta.readLines().count { line -> line.startsWith('>') } <= 12
 }
 
-// samtools coverage TSV: min meandepth over contigs, so every segment of a segmented genome must clear the gate.
-def parseCoverageMinMeanDepth(coverageFile) {
+// samtools coverage TSV: length-weighted mean depth over the whole reference, plus the least-covered contig.
+// Short element records placed on a genome (UTRs, FSE) stay shallow because reads longer than them cannot align end to end.
+def parseCoverageMeanDepth(coverageFile) {
     def rows = coverageFile.readLines().findAll { line -> line && !line.startsWith('#') }.collect { line -> line.split('\t') }
     if (!rows) {
         error("Could not parse any contig from samtools coverage file: ${coverageFile}")
     }
+    def lengths = rows.collect { row -> ((row[2] as long) - (row[1] as long) + 1) as double }
+    def total = lengths.sum() as double
+    def overall = [ lengths, rows ].transpose().sum { pair -> pair[0] * (pair[1][6] as double) } / total
     def lowest = rows.min { row -> row[6] as double }
-    [ lowest[0], lowest[6] as double ]
+    [ Math.round(overall * 100) / 100.0d, lowest[0], lowest[6] as double ]
 }
 
 def parseFlagstatMappedPct(flagstatFile) {

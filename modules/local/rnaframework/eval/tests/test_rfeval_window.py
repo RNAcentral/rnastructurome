@@ -114,10 +114,11 @@ def test_reactivity_length_mismatch_drops_the_reference(tmp_path):
     assert "20 reactivities vs 30 nt" in result.stderr
 
 
-def test_exits_nonzero_when_no_window_is_written(tmp_path):
+def test_no_window_written_is_reported_not_fatal(tmp_path):
     result = _run(tmp_path, "chr1\t99\t120\tnope\t+\n")
-    assert result.returncode == 1
+    assert result.returncode == 0, result.stderr
     assert "no windows written" in result.stderr
+    assert not list((tmp_path / "out").glob("*.xml"))
 
 
 def test_short_manifest_row_is_a_hard_error(tmp_path):
