@@ -216,12 +216,14 @@ workflow RNASTRUCTUROME {
     def ch_post_dedup_mapped_reads = ALIGN_READS.out.flagstat_post
         .map { meta, flagstat -> [ meta.id.toString(), parseFlagstatMappedReads(flagstat) ] }
 
-    // --rnacentral check 2: alignment yield, post-dedup. Small (viral) references are gated on read depth
-    // instead of mapped %: virion preps carry host RNA, so mapped % reflects the prep, not the alignment.
+    // --rnacentral check 2: alignment yield, post-dedup. Small (viral) references, and any reference under
+    // --rnacentral_gate_on_depth, are gated on read depth instead of mapped %: when the reference holds only part
+    // of what the library contains (host RNA in virion preps, mRNAs on an ncRNA-only transcriptome), mapped %
+    // reflects the library, not the alignment.
     if (params.rnacentral) {
         ALIGN_READS.out.flagstat_post
             .combine(ch_reference_fasta_map)
-            .filter { meta, _flagstat, ref_map -> !isSmallReference(meta, ref_map) }
+            .filter { meta, _flagstat, ref_map -> !params.rnacentral_gate_on_depth && !isSmallReference(meta, ref_map) }
             .map { meta, flagstat, _ref_map ->
                 def pct = parseFlagstatMappedPct(flagstat)
                 rnacentralQcGate('Mapped reads', pct >= params.rnacentral_min_mapped_pct, "${meta.id} at ${pct}% (< ${params.rnacentral_min_mapped_pct}%)")
@@ -230,13 +232,16 @@ workflow RNASTRUCTUROME {
         SAMTOOLS_COVERAGE (
             ch_markdup_bam_bai
                 .combine(ch_reference_fasta_map)
-                .filter { meta, _bam, _bai, ref_map -> isSmallReference(meta, ref_map) }
+                .filter { meta, _bam, _bai, ref_map -> params.rnacentral_gate_on_depth || isSmallReference(meta, ref_map) }
                 .map { meta, bam, bai, _ref_map -> [ meta, bam, bai ] },
             channel.value([ [], [], [] ])
         )
-        SAMTOOLS_COVERAGE.out.coverage.map { meta, coverage ->
+        SAMTOOLS_COVERAGE.out.coverage.combine(ch_reference_fasta_map).map { meta, coverage, ref_map ->
             def (depth, contig, contigDepth) = parseCoverageMeanDepth(coverage)
-            rnacentralQcWarn('Mean read depth per record', contigDepth >= params.rnacentral_min_mean_depth, "${meta.id} at ${contigDepth}x on ${contig} (< ${params.rnacentral_min_mean_depth}x)")
+            // Per-record warning for viral genomes only: in a many-record ncRNA set some records always get no reads
+            if (isSmallReference(meta, ref_map)) {
+                rnacentralQcWarn('Mean read depth per record', contigDepth >= params.rnacentral_min_mean_depth, "${meta.id} at ${contigDepth}x on ${contig} (< ${params.rnacentral_min_mean_depth}x)")
+            }
             rnacentralQcGate('Mean read depth', depth >= params.rnacentral_min_mean_depth, "${meta.id} at ${depth}x over the reference (< ${params.rnacentral_min_mean_depth}x)")
         }
     }

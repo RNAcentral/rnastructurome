@@ -876,8 +876,13 @@
                 "rnacentral_min_mean_depth": {
                     "type": "number",
                     "minimum": 0,
-                    "description": "Minimum mean read depth over the whole reference (samtools coverage, length-weighted over records) per sample required by the --rnacentral QC gate for small references (FASTA under 1 MB with at most 12 records, i.e. viral genomes), which are gated on depth instead of mapped %. A single record below it only warns.",
+                    "description": "Minimum mean read depth over the whole reference (samtools coverage, length-weighted over records) per sample required by the --rnacentral QC gate for small references (FASTA under 1 MB with at most 12 records, i.e. viral genomes), and for any reference under --rnacentral_gate_on_depth, which are gated on depth instead of mapped %. A single record of a viral genome below it only warns.",
                     "default": 100
+                },
+                "rnacentral_gate_on_depth": {
+                    "type": "boolean",
+                    "description": "Gate alignment yield on --rnacentral_min_mean_depth instead of --rnacentral_min_mapped_pct for any reference, not only viral genomes. For references that hold only part of what the library contains, such as an ncRNA-only transcriptome for a total-RNA or small-RNA library, where mapped % measures library composition rather than alignment.",
+                    "default": false
                 },
                 "rnacentral_min_correlation": {
                     "type": "number",
