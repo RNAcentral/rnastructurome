@@ -456,9 +456,8 @@
                 "rfcount_min_reads": {
                     "type": "integer",
                     "minimum": 1,
-                    "description": "Count only references with at least this many alignments in rf-count. Ignored with `--count_genome true`.",
-                    "help_text": "rf-count splits the BAM with one `samtools view` per reference, and each call loads the whole header and index, so a whole-transcriptome run with hundreds of thousands of covered transcripts can take a week. Shallow transcripts give no usable reactivities anyway; `1000` is a reasonable cut for MaP data on a large transcriptome.",
-                    "default": 1
+                    "description": "Count only references with at least this many alignments in rf-count. Unset, it is rf-norm's `-n` coverage (`--rfnorm_nan`, else 1000 for MaP and 50 for RT-stop). Ignored with `--count_genome true`.",
+                    "help_text": "rf-count splits the BAM with one `samtools view` per reference, and each call loads the whole header and index, so a whole-transcriptome run with hundreds of thousands of covered transcripts can take a week. A base's coverage cannot exceed its transcript's read count, and rf-norm reports NaN below its `-n` coverage, so the default drops only transcripts that could not get a single reactivity value."
                 },
                 "rfcount_map_max_coverage": {
                     "type": "integer",
