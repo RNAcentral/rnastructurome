@@ -72,13 +72,13 @@ process RNAFRAMEWORK_RFEVAL {
     ${window_cmd}
 
     # no reference structure lies on this sample's profiles (e.g. its only scored segments fell below coverage): report zero structures
+    # if/else rather than exit 0, which would skip the eval() version capture Nextflow appends to this script
     if ${windows ? "! ls ${prefix}_rfeval_windows/*.xml > /dev/null 2>&1" : 'false'}; then
         mkdir -p ${prefix}_rfeval
         printf 'structure\\tcoeff_unpaired\\tdsci\\tauroc\\n' > ${prefix}_rfeval/${prefix}_rfeval.metrics.tsv
         printf 'No reference structure lies on a profile of this sample; rf-eval skipped.\\n' > ${prefix}_rfeval/rfeval.log
         rm -f "\${log_tmp}"
-        exit 0
-    fi
+    else
 
     printf '===== rf-eval: reference structures =====\\n' >> "\${log_tmp}"
 
@@ -107,6 +107,7 @@ ${baseline_cmd}
 
     mkdir -p ${prefix}_rfeval
     mv "\${log_tmp}" ${prefix}_rfeval/rfeval.log
+    fi
     """
 
     stub:
