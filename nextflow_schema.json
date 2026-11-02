@@ -903,6 +903,13 @@
                     "description": "Optional floor on the treated sample's rf-count pct_mutated (MaP only), required by the --rnacentral QC gate. 0 disables this specific check.",
                     "default": 0
                 },
+                "rnacentral_max_untreated_site_rate": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "The --rnacentral DMS signal check (treated A+C mutations above G+U) skips sites mutated in more than this fraction of the untreated control's reads, judged where the control covers a site at least 50 times. Modified bases such as tRNA m1G37 and m2,2G26, and SNPs, mutate in both samples and otherwise swamp the A/C signal.",
+                    "default": 0.1
+                },
                 "rffold_ct": {
                     "type": "boolean",
                     "description": "Write CT format structures with rf-fold (`-ct`). Disabled by default to keep dot-bracket output.",

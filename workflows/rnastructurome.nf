@@ -6,6 +6,7 @@
 include { MULTIQC             } from '../modules/nf-core/multiqc/main'
 include { SAMTOOLS_COVERAGE   } from '../modules/nf-core/samtools/coverage/main'
 include { RNAFRAMEWORK_TORDAT } from '../modules/local/tordat/main'
+include { RNACENTRAL_DMS_SIGNAL } from '../modules/local/rnacentral_dms_signal/main'
 
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -183,12 +184,6 @@ workflow RNASTRUCTUROME {
                     log.warn("--rnacentral check 3: no untreated match for group '${group}'; skipping rf-count signal check.")
                     return
                 }
-                def isDms      = (meta.method ?: '').toString().toLowerCase() == 'dms'
-                def isDmsBroad = isDms && meta.pH && (meta.pH as Double) >= 8.0
-                if (isDms && !isDmsBroad) {
-                    rnacentralQcGate('DMS signal', treated.pct_a + treated.pct_c > treated.pct_g + treated.pct_u,
-                        "${group} treated A+C ${treated.pct_a + treated.pct_c} not > G+U ${treated.pct_g + treated.pct_u}")
-                }
                 def spread = [untreated.pct_a, untreated.pct_c, untreated.pct_g, untreated.pct_u].max() -
                              [untreated.pct_a, untreated.pct_c, untreated.pct_g, untreated.pct_u].min()
                 // Warn-only: the per-base share is not corrected for reference composition, so an
@@ -207,6 +202,41 @@ workflow RNASTRUCTUROME {
                             "${group} treated ${treated.pct_mutated} (< ${params.rnacentral_min_treated_mutation_rate})")
                     }
                 }
+            }
+
+        // DMS signal gate on the RC files, skipping sites the untreated control already mutates (modified bases, SNPs).
+        def ch_rc_by_group = ch_rfcount_rc
+            .filter { meta, _rc -> meta.sample_group && meta.replicate }
+            .map { meta, rc ->
+                [ "${meta.sample_group}_${meta.replicate}".toString(), (meta.condition ?: 'treated').toLowerCase(), meta, rc ]
+            }
+
+        def ch_dms_treated_rc = ch_rc_by_group
+            .filter { _group, condition, meta, _rc ->
+                def isDms = (meta.method ?: '').toString().toLowerCase() == 'dms'
+                condition == 'treated' && isDms && !(meta.pH && (meta.pH as Double) >= 8.0)
+            }
+            .map { group, _condition, meta, rc -> [ group, meta, rc ] }
+
+        def ch_untreated_rc = ch_rc_by_group
+            .filter { _group, condition, _meta, _rc -> condition == 'untreated' }
+            .map    { group, _condition, _meta, rc -> [ group, rc ] }
+
+        RNACENTRAL_DMS_SIGNAL (
+            ch_dms_treated_rc
+                .combine(ch_untreated_rc, by: 0)
+                .map { group, meta, treated_rc, untreated_rc -> [ meta + [ qc_group: group ], treated_rc, untreated_rc ] }
+        )
+
+        RNACENTRAL_DMS_SIGNAL.out.tsv
+            .map { meta, tsv ->
+                def fields  = tsv.readLines()[1].split('\t')
+                def skipped = fields[1] as Integer
+                def (a, c, g, u) = fields[2..5].collect { pct -> pct as Double }
+                def ac = String.format('%.2f', a + c)
+                def gu = String.format('%.2f', g + u)
+                rnacentralQcGate('DMS signal', a + c > g + u,
+                    "${meta.qc_group} treated ${meta.id} A+C ${ac} not > G+U ${gu} (${skipped} sites mutated in > ${params.rnacentral_max_untreated_site_rate} of untreated reads skipped)")
             }
     }
 

@@ -1,0 +1,48 @@
+name: rnacentral_dms_signal
+description: Per-base share of a treated sample's rf-count mutations, skipping
+  sites its untreated control already mutates, for the --rnacentral DMS signal gate
+keywords:
+  - dms
+  - qc
+  - rnaframework
+tools:
+  - python:
+      description: Python runtime used to read RNA Framework RC files.
+      homepage: https://www.python.org/
+      documentation: https://docs.python.org/3/
+      licence:
+        - "Python-2.0"
+      identifier: ""
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing the treated sample's information
+    - treated_rc:
+        type: file
+        description: rf-count RC file of the treated sample
+        pattern: "*.rc"
+        ontologies: []
+    - untreated_rc:
+        type: file
+        description: rf-count RC file of its untreated control
+        pattern: "*.rc"
+        ontologies: []
+output:
+  tsv:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing the treated sample's information
+      - ${prefix}.dms_signal.tsv: {}
+  versions:
+    - versions.yml:
+        type: file
+        description: File containing software versions
+        pattern: "versions.yml"
+        ontologies:
+          - edam: http://edamontology.org/format_3750
+authors:
+  - "@vicbeg"
+maintainers:
+  - "@vicbeg"
