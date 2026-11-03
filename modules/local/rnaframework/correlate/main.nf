@@ -28,8 +28,6 @@ process RNAFRAMEWORK_RFCORRELATE {
     """
     export TERM="\${TERM:-xterm}"
 
-    abs_path() { perl -MCwd=abs_path -e 'print abs_path(shift)' "\$1"; }
-
     # Rebuild one folder per replicate from the per-file input*/ staging. correlate_replicate_sizes
     # gives how many input dirs belong to each replicate (in order), correlate_replicate_labels the
     # rf-correlate sample label for each. Transcript XML names repeat across replicates, so each
@@ -47,12 +45,17 @@ process RNAFRAMEWORK_RFCORRELATE {
     for k in "\${!sizes[@]}"; do
         repdir="corr_input/\${labels[k]}"
         mkdir -p "\${repdir}"
+        targets=()
         for ((j = 0; j < sizes[k]; j++)); do
             for x in "\${_input_dirs[idx]}"*.xml; do
-                [[ -e "\${x}" ]] && ln -sf "\$(abs_path "\${x}")" "\${repdir}/\$(basename "\${x}")"
+                [[ -e "\${x}" ]] && targets+=( "\${PWD}/\${x}" )
             done
             idx=\$((idx + 1))
         done
+        # Batched ln via xargs: forking per XML takes hours at whole-transcriptome counts
+        if [[ \${#targets[@]} -gt 0 ]]; then
+            printf '%s\\0' "\${targets[@]}" | xargs -0 ln -sf -t "\${repdir}" --
+        fi
         corr_args+=( "\${labels[k]}:\${repdir}/" )
     done
 
