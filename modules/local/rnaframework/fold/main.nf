@@ -38,10 +38,6 @@ process RNAFRAMEWORK_RFFOLD {
     export TERM="\${TERM:-xterm}"
     ${perlEnvCleanup}
 
-    abs_path() {
-        perl -MCwd=abs_path -e 'print abs_path(shift)' "\$1"
-    }
-
     # Rebuild one experiment directory per replicate so rf-fold folds replicates together via
     # majority voting (rf-fold experiment1/ experiment2/ ...). The XMLs were staged one-per-dir as
     # input*/ in replicate-grouped order; fold_replicate_sizes says how many consecutive input dirs
@@ -60,12 +56,17 @@ process RNAFRAMEWORK_RFFOLD {
     for k in "\${!sizes[@]}"; do
         expdir="experiment\$((k + 1))"
         mkdir -p "\${expdir}"
+        targets=()
         for ((j = 0; j < sizes[k]; j++)); do
             for x in "\${_input_dirs[idx]}"*.xml; do
-                [[ -e "\${x}" ]] && ln -sf "\$(abs_path "\${x}")" "\${expdir}/\$(basename "\${x}")"
+                [[ -e "\${x}" ]] && targets+=( "\${PWD}/\${x}" )
             done
             idx=\$((idx + 1))
         done
+        # Batched ln via xargs: forking per XML takes hours at whole-transcriptome counts
+        if [[ \${#targets[@]} -gt 0 ]]; then
+            printf '%s\\0' "\${targets[@]}" | xargs -0 ln -sf -t "\${expdir}" --
+        fi
     done
 
     # Expected transcripts for the missing-check = those rf-fold will attempt = present in ALL
@@ -85,9 +86,7 @@ process RNAFRAMEWORK_RFFOLD {
             comm -12 "\${_intersect}" "\${_this}" >| "\${_intersect}.new" && mv "\${_intersect}.new" "\${_intersect}"
         fi
     done
-    while read -r _b; do
-        [[ -n "\${_b}" ]] && ln -sf "\$(abs_path "experiment1/\${_b}")" "expected_xml/\${_b}"
-    done < "\${_intersect}"
+    sed "s#^#\${PWD}/experiment1/#" "\${_intersect}" | tr '\\n' '\\0' | xargs -0 -r ln -sf -t expected_xml --
     rm -f "\${_intersect}" "\${_this}"
 
     log_tmp=\$(mktemp "${prefix}_fold.XXXXXX.log")
