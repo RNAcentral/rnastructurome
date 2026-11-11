@@ -314,13 +314,12 @@ workflow ALIGN_READS {
 
     // Software versions are collected later via channel.topic("versions")
 
-    // MODULES: BEDOPS_GTF2BED + RSEQC_INFEREXPERIMENT (count_genome route only). Convert each reference
-    // GTF to BED12 once, then run infer_experiment to determine strandedness automatically. Only the
-    // rf-count-genome path consumes it (--library-strandedness); the default STAR/rf-count route ignores
-    // strandedness, so skip the inference there.
+    // MODULES: BEDOPS_GTF2BED + RSEQC_INFEREXPERIMENT (genome route). Convert each reference
+    // GTF to BED12 once, then run infer_experiment to determine strandedness automatically.
+    // rf-count-genome takes it as --library-strandedness; the default route uses it to drop STAR's antisense projections.
     def ch_strandedness_by_id = channel.empty()
 
-    if (!transcriptome && params.count_genome) {
+    if (!transcriptome) {
         BEDOPS_GTF2BED(ch_all_reference_gtf)
 
         def ch_reference_bed_map = collectToMap(
@@ -332,7 +331,7 @@ workflow ALIGN_READS {
             .map { meta, bam, bai, bed_map ->
                 def ref_key = resolveReferenceKey(meta)
                 def bed_t   = bed_map[ref_key]
-                // Skip samples whose reference has no usable BED (e.g. viral synthetic GTFs)
+                // Skip samples whose reference has no usable BED
                 bed_t ? [ [meta, bam, bai], bed_t[1] ] : null
             }
             .filter { entry -> entry != null }

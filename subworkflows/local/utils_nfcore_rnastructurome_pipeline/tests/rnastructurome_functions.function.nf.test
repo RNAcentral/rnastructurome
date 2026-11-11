@@ -104,6 +104,24 @@ nextflow_function {
         then { assert function.success; assert function.result.pH == 8.2 }
     }
 
+    test("strandFilterExpression keeps read1-sense alignments for second-strand libraries") {
+        function "strandFilterExpression"
+        when { function { """ input[0] = 'second' """ } }
+        then { assert function.success; assert function.result == '(flag.read2 && flag.reverse) || (!flag.read2 && !flag.reverse)' }
+    }
+
+    test("strandFilterExpression keeps read2-sense alignments for first-strand libraries") {
+        function "strandFilterExpression"
+        when { function { """ input[0] = 'first' """ } }
+        then { assert function.success; assert function.result == '(flag.read2 && !flag.reverse) || (!flag.read2 && flag.reverse)' }
+    }
+
+    test("strandFilterExpression has no filter for unstranded or unknown libraries") {
+        function "strandFilterExpression"
+        when { function { """ input[0] = 'unstranded' """ } }
+        then { assert function.success; assert function.result == null }
+    }
+
     test("isFourBaseDms is on for DMS-MaP at pH 8") {
         function "isFourBaseDms"
         when {

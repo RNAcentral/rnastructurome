@@ -13,6 +13,8 @@ components:
   - rnaframework/rfcount
   - rnaframework/rfcount/genome
   - rnaframework/rfrctools/extract
+  - samtools/view
+  - strandfilterexpression
 input:
   - ch_markdup_bam_bai:
       type: channel
@@ -26,7 +28,8 @@ input:
   - ch_strandedness_by_id:
       type: channel
       description: |
-        Inferred strandedness per sample id. Structure: [ id, strandedness ]
+        Inferred strandedness per sample id (genome route). Used by rf-count-genome and, on the default
+        route, to keep only sense-oriented MaP alignments. Structure: [ id, strandedness ]
   - ch_reference_genome_fasta_keyed:
       type: channel
       description: |

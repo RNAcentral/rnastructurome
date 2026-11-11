@@ -692,6 +692,13 @@ def parseInferExperiment(txtFile) {
     return 'unstranded'
 }
 
+// samtools view -e expression keeping only alignments in the library's sense orientation; null when unstranded.
+def strandFilterExpression(strandedness) {
+    if (strandedness == 'second') return '(flag.read2 && flag.reverse) || (!flag.read2 && !flag.reverse)'
+    if (strandedness == 'first') return '(flag.read2 && !flag.reverse) || (!flag.read2 && flag.reverse)'
+    return null
+}
+
 def filterSummaryParams(summaryParams, transcriptome) {
     def hiddenKeys = [
         'ensembl_species_map',

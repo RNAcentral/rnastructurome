@@ -6,10 +6,12 @@ include { RNAFRAMEWORK_RFCOUNT           } from '../../../modules/local/rnaframe
 include { RNAFRAMEWORK_RFCOUNT as RNAFRAMEWORK_RFCOUNT_STAR } from '../../../modules/local/rnaframework/count/main'
 include { RNAFRAMEWORK_RFCOUNT_GENOME    } from '../../../modules/local/rnaframework/count_genome/main'
 include { RNAFRAMEWORK_RFRCTOOLS_EXTRACT } from '../../../modules/local/rnaframework/rctools/extract/main'
+include { SAMTOOLS_VIEW as SAMTOOLS_VIEW_STRAND } from '../../../modules/nf-core/samtools/view/main'
 
 include { collectToMap        } from '../utils_nfcore_rnastructurome_pipeline/main'
 include { isFourBaseDms       } from '../utils_nfcore_rnastructurome_pipeline/main'
 include { resolveReferenceKey } from '../utils_nfcore_rnastructurome_pipeline/main'
+include { strandFilterExpression } from '../utils_nfcore_rnastructurome_pipeline/main'
 
 workflow QUANTIFY_REACTIVITY {
 
@@ -31,7 +33,7 @@ workflow QUANTIFY_REACTIVITY {
     def ch_rfcount_plots     = channel.empty()
 
     // Annotate each BAM with the per-sample strandedness inferred by RSeQC. remainder: true keeps
-    // samples with no BED (e.g. viral) at strandedness = null, falling back to params.rfcount_strandedness.
+    // samples whose reference has no BED at strandedness = null, falling back to params.rfcount_strandedness.
     // Used by both genome-route branches below (rf-count-genome and rf-count-direct).
     def ch_stranded_meta_by_id = ch_strandedness_by_id
 
@@ -105,7 +107,36 @@ workflow QUANTIFY_REACTIVITY {
                 [ meta + [strandedness: strandedness], bam, bai ]
             }
 
-        def ch_rfcount_direct_inputs = ch_transcript_bam_stranded
+        // STAR projects each read onto every overlapping transcript, either strand, and rf-count -m keeps reverse alignments.
+        // So a MaP read also lands, complemented, on antisense transcripts: keep only sense-oriented alignments.
+        def ch_strand_branches = ch_transcript_bam_stranded.branch { meta, _bam, _bai ->
+            filter:   (meta.principle ?: '').toLowerCase() == 'map' && strandFilterExpression(meta.strandedness ?: params.rfcount_strandedness)
+            passthru: true
+        }
+
+        ch_strand_branches.passthru
+            .filter { meta, _bam, _bai -> (meta.principle ?: '').toLowerCase() == 'map' }
+            .subscribe { meta, _bam, _bai ->
+                log.warn("${meta.id}: unstranded library, so rf-count also counts its reads on overlapping antisense transcripts, with mutations complemented")
+            }
+
+        SAMTOOLS_VIEW_STRAND(
+            ch_strand_branches.filter.map { meta, bam, bai ->
+                [ meta + [strand_filter: strandFilterExpression(meta.strandedness ?: params.rfcount_strandedness)], bam, bai ]
+            },
+            channel.value([ [], [], [] ]),
+            channel.value([ [], [] ]),
+            channel.value([ [], [] ]),
+            'bai'
+        )
+
+        def ch_sense_bam_bai = SAMTOOLS_VIEW_STRAND.out.bam
+            .map { meta, bam -> [ meta.id.toString(), meta.findAll { key, _value -> key != 'strand_filter' }, bam ] }
+            .join(SAMTOOLS_VIEW_STRAND.out.bai.map { meta, bai -> [ meta.id.toString(), bai ] })
+            .map { _id, meta, bam, bai -> [ meta, bam, bai ] }
+            .mix(ch_strand_branches.passthru)
+
+        def ch_rfcount_direct_inputs = ch_sense_bam_bai
             .combine(ch_genome_transcript_fasta_map)
             .map { combined ->
                 def meta    = combined[0]

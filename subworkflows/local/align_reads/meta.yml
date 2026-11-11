@@ -84,7 +84,8 @@ output:
   - strandedness_by_id:
       type: channel
       description: |
-        Inferred strandedness per sample id. Structure: [ id, strandedness ]
+        Inferred strandedness per sample id from RSeQC infer_experiment (genome route).
+        Structure: [ id, strandedness ]
   - flagstat_pre:
       type: channel
       description: |

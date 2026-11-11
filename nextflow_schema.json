@@ -378,7 +378,7 @@
                 "rfcount_strandedness": {
                     "type": "string",
                     "enum": ["unstranded", "first", "second"],
-                    "description": "Library strandedness fallback for rf-count-genome when RSeQC inference is unavailable (e.g. viral/bacterial references without a usable BED annotation).",
+                    "description": "Library strandedness fallback for the genome route (rf-count-genome, and the MaP sense-strand filter on the default route) when RSeQC inference is unavailable because the reference GTF gives no usable BED annotation.",
                     "default": "unstranded"
                 },
                 "rfcount_genome_map_quality": {
