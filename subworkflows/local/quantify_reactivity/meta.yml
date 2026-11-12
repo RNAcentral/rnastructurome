@@ -15,6 +15,7 @@ components:
   - rnaframework/rfrctools/extract
   - samtools/view
   - strandfilterexpression
+  - withstrandedness
 input:
   - ch_markdup_bam_bai:
       type: channel

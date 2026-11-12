@@ -12,6 +12,7 @@ include { collectToMap        } from '../utils_nfcore_rnastructurome_pipeline/ma
 include { isFourBaseDms       } from '../utils_nfcore_rnastructurome_pipeline/main'
 include { resolveReferenceKey } from '../utils_nfcore_rnastructurome_pipeline/main'
 include { strandFilterExpression } from '../utils_nfcore_rnastructurome_pipeline/main'
+include { withStrandedness       } from '../utils_nfcore_rnastructurome_pipeline/main'
 
 workflow QUANTIFY_REACTIVITY {
 
@@ -32,9 +33,8 @@ workflow QUANTIFY_REACTIVITY {
     def ch_rfcount_summary   = channel.empty()
     def ch_rfcount_plots     = channel.empty()
 
-    // Annotate each BAM with the per-sample strandedness inferred by RSeQC. remainder: true keeps
-    // samples whose reference has no BED at strandedness = null, falling back to params.rfcount_strandedness.
-    // Used by both genome-route branches below (rf-count-genome and rf-count-direct).
+    // Annotate each BAM with its strandedness: RSeQC's per-sample call unless --rfcount_strandedness is set explicitly.
+    // remainder: true keeps samples whose reference has no BED (inferred = null). Used by both genome-route branches below.
     def ch_stranded_meta_by_id = ch_strandedness_by_id
 
     if (!transcriptome && params.count_genome) {
@@ -44,7 +44,7 @@ workflow QUANTIFY_REACTIVITY {
             .map { meta, bam, bai -> [ meta.id.toString(), meta, bam, bai ] }
             .join(ch_stranded_meta_by_id, remainder: true)
             .map { _id, meta, bam, bai, strandedness ->
-                [ meta + [strandedness: strandedness], bam, bai ]
+                [ withStrandedness(meta, strandedness), bam, bai ]
             }
 
         def ch_rfcount_genome_inputs = ch_bam_stranded
@@ -104,13 +104,13 @@ workflow QUANTIFY_REACTIVITY {
             .map { meta, bam, bai -> [ meta.id.toString(), meta, bam, bai ] }
             .join(ch_stranded_meta_by_id, remainder: true)
             .map { _id, meta, bam, bai, strandedness ->
-                [ meta + [strandedness: strandedness], bam, bai ]
+                [ withStrandedness(meta, strandedness), bam, bai ]
             }
 
         // STAR projects each read onto every overlapping transcript, either strand, and rf-count -m keeps reverse alignments.
         // So a MaP read also lands, complemented, on antisense transcripts: keep only sense-oriented alignments.
         def ch_strand_branches = ch_transcript_bam_stranded.branch { meta, _bam, _bai ->
-            filter:   (meta.principle ?: '').toLowerCase() == 'map' && strandFilterExpression(meta.strandedness ?: params.rfcount_strandedness)
+            filter:   (meta.principle ?: '').toLowerCase() == 'map' && strandFilterExpression(meta.strandedness)
             passthru: true
         }
 
@@ -122,7 +122,7 @@ workflow QUANTIFY_REACTIVITY {
 
         SAMTOOLS_VIEW_STRAND(
             ch_strand_branches.filter.map { meta, bam, bai ->
-                [ meta + [strand_filter: strandFilterExpression(meta.strandedness ?: params.rfcount_strandedness)], bam, bai ]
+                [ meta + [strand_filter: strandFilterExpression(meta.strandedness)], bam, bai ]
             },
             channel.value([ [], [], [] ]),
             channel.value([ [], [] ]),

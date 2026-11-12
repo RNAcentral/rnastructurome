@@ -122,6 +122,54 @@ nextflow_function {
         then { assert function.success; assert function.result == null }
     }
 
+    test("strandednessFromFractions ignores undetermined reads (00063: 0.68 / 0.13 / 0.19 undetermined)") {
+        function "strandednessFromFractions"
+        when { function { """ input[0] = 0.6804; input[1] = 0.1304 """ } }
+        then { assert function.success; assert function.result == 'second' }
+    }
+
+    test("strandednessFromFractions calls read2-sense libraries first-strand") {
+        function "strandednessFromFractions"
+        when { function { """ input[0] = 0.04; input[1] = 0.86 """ } }
+        then { assert function.success; assert function.result == 'first' }
+    }
+
+    test("strandednessFromFractions calls mixed orientations unstranded") {
+        function "strandednessFromFractions"
+        when { function { """ input[0] = 0.40; input[1] = 0.45 """ } }
+        then { assert function.success; assert function.result == 'unstranded' }
+    }
+
+    test("strandednessFromFractions makes no call when few reads are assigned (00131 read2-sense library looked forward)") {
+        function "strandednessFromFractions"
+        when { function { """ input[0] = 0.0682; input[1] = 0.0147 """ } }
+        then { assert function.success; assert function.result == 'unstranded' }
+    }
+
+    test("strandednessFromFractions calls unstranded when no read is strand-assigned") {
+        function "strandednessFromFractions"
+        when { function { """ input[0] = 0.0; input[1] = 0.0 """ } }
+        then { assert function.success; assert function.result == 'unstranded' }
+    }
+
+    test("resolveStrandedness takes RSeQC's call when auto") {
+        function "resolveStrandedness"
+        when { function { """ input[0] = 'unstranded'; input[1] = 'auto' """ } }
+        then { assert function.success; assert function.result == 'unstranded' }
+    }
+
+    test("resolveStrandedness lets an explicit value override RSeQC") {
+        function "resolveStrandedness"
+        when { function { """ input[0] = 'unstranded'; input[1] = 'second' """ } }
+        then { assert function.success; assert function.result == 'second' }
+    }
+
+    test("resolveStrandedness falls back to unstranded without an inferred value") {
+        function "resolveStrandedness"
+        when { function { """ input[0] = null; input[1] = 'auto' """ } }
+        then { assert function.success; assert function.result == 'unstranded' }
+    }
+
     test("isFourBaseDms is on for DMS-MaP at pH 8") {
         function "isFourBaseDms"
         when {

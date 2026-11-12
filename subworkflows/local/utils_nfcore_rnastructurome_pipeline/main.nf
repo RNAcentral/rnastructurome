@@ -687,8 +687,15 @@ def parseInferExperiment(txtFile) {
     // (read1=sense); "first-strand" uses read2's orientation (read2=sense, e.g. dUTP/TruSeq-directional).
     // RSeQC's "forward" fraction ("1++,1--,2+-,2-+") is read1=sense, so it maps to 'second' here; its
     // "reverse" fraction ("1+-,1-+,2++,2--", the common dUTP pattern) is read2=sense, mapping to 'first'.
-    if (forward > 0.7) return 'second'
-    if (reverse > 0.7) return 'first'
+    return strandednessFromFractions(forward, reverse)
+}
+
+// Stranded when >= 80% of strand-assigned reads agree (as nf-core/rnaseq) and >= half the sampled reads were assigned.
+def strandednessFromFractions(forward, reverse) {
+    def assigned = (forward as double) + (reverse as double)
+    if (assigned < 0.5) return 'unstranded'
+    if (forward / assigned >= 0.8) return 'second'
+    if (reverse / assigned >= 0.8) return 'first'
     return 'unstranded'
 }
 
@@ -697,6 +704,19 @@ def strandFilterExpression(strandedness) {
     if (strandedness == 'second') return '(flag.read2 && flag.reverse) || (!flag.read2 && !flag.reverse)'
     if (strandedness == 'first') return '(flag.read2 && !flag.reverse) || (!flag.read2 && flag.reverse)'
     return null
+}
+
+// Strandedness a sample is counted with: an explicit --rfcount_strandedness overrides RSeQC; 'auto' takes RSeQC's call, else unstranded.
+def resolveStrandedness(inferred, requested) {
+    if (requested in ['first', 'second', 'unstranded']) return requested
+    return inferred ?: 'unstranded'
+}
+
+// meta with the strandedness the sample is counted with, warning where --rfcount_strandedness overrides RSeQC's call.
+def withStrandedness(meta, inferred) {
+    def used = resolveStrandedness(inferred, params.rfcount_strandedness)
+    if (inferred && used != inferred) log.warn("${meta.id}: RSeQC infers ${inferred}; using --rfcount_strandedness ${used}")
+    return meta + [strandedness: used]
 }
 
 def filterSummaryParams(summaryParams, transcriptome) {

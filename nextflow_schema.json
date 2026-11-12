@@ -377,9 +377,9 @@
                 },
                 "rfcount_strandedness": {
                     "type": "string",
-                    "enum": ["unstranded", "first", "second"],
-                    "description": "Library strandedness fallback for the genome route (rf-count-genome, and the MaP sense-strand filter on the default route) when RSeQC inference is unavailable because the reference GTF gives no usable BED annotation.",
-                    "default": "unstranded"
+                    "enum": ["auto", "unstranded", "first", "second"],
+                    "description": "Library strandedness on the genome route (rf-count-genome, and the MaP sense-strand filter on the default route). 'auto' uses RSeQC infer_experiment per sample, or unstranded where it cannot run; 'first' (read 2 sense), 'second' (read 1 sense) or 'unstranded' override the inferred value for every sample.",
+                    "default": "auto"
                 },
                 "rfcount_genome_map_quality": {
                     "default": 0,
