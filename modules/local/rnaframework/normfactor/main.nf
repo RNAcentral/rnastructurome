@@ -62,9 +62,18 @@ process RNAFRAMEWORK_RFNORMFACTOR {
     # is auto-enabled, so a shortfall must NOT break the run — capture the status, warn, and emit no
     # factor file. The subworkflow then leaves rf-norm to normalise this reference per-sample.
     # No transcript covered in every sample (e.g. each sample probed one segment alone) is the same shortfall.
+    # rf-normfactor 2.9.8 lacks rf-norm's guards for a zero denatured rate and a zero RT-stop mean (threads die, so factors are lost or partial); run a fixed copy, or the original if the fix no longer applies
+    rfnf_path="\$(perl -MCwd=abs_path -e 'print abs_path(shift)' "\$(command -v rf-normfactor)")"
+    rfnf=(rf-normfactor)
+    if rfnormfactor_patch.pl "\${rfnf_path}" rf-normfactor.patched; then
+        rfnf=(perl -I "\$(dirname "\${rfnf_path}")/lib" rf-normfactor.patched)
+    else
+        echo "[RNAFRAMEWORK_RFNORMFACTOR] could not apply the rf-normfactor fixes to \${rfnf_path}; running it unpatched" >&2
+    fi
+
     set +e
     if [[ "\${align_status}" -eq 0 ]]; then
-        rf-normfactor \\
+        "\${rfnf[@]}" \\
             -p ${task.cpus} \\
             -o ${prefix}.norm_factors.txt \\
             -ow \\
@@ -79,6 +88,12 @@ process RNAFRAMEWORK_RFNORMFACTOR {
     set -e
 
     mv "\${rfnormfactor_log_tmp}" ${prefix}.rfnormfactor.log || true
+
+    # A thread that dies drops its transcripts from the calculation, so factors written after a crash are not used
+    if grep -q "terminated abnormally" ${prefix}.rfnormfactor.log 2>/dev/null; then
+        echo "[RNAFRAMEWORK_RFNORMFACTOR] rf-normfactor threads crashed for '${prefix}' (see ${prefix}.rfnormfactor.log); discarding its factors" >&2
+        nf_status=1
+    fi
 
     if [[ "\${nf_status}" -ne 0 || ! -s "${prefix}.norm_factors.txt" ]]; then
         echo "[RNAFRAMEWORK_RFNORMFACTOR] rf-normfactor did not produce normalisation factors for '${prefix}' (exit \${nf_status}); rf-norm will fall back to per-sample normalisation for this reference. If coverage is the cause, lower --rfnorm_normfactor_min_coverage." >&2

@@ -65,6 +65,68 @@ nextflow_process {
         }
     }
 
+    test("rfnormfactor - MaP with a denatured control") {
+
+        // Siegfried scoring divides by the denatured mutation rate, which is 0 at most positions of these sparse BAMs; unpatched rf-normfactor 2.9.8 crashes here
+        setup {
+            run("RNAFRAMEWORK_RFCOUNT") {
+                script "../../count/main.nf"
+                process {
+                    """
+                    input[0] = Channel.of(
+                        [
+                            [ id:'map_treated', principle:'MaP', single_end:false ],
+                            file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam', checkIfExists: true),
+                            file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.paired_end.sorted.bam.bai', checkIfExists: true)
+                        ],
+                        [
+                            [ id:'map_untreated', principle:'MaP', single_end:true ],
+                            file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.single_end.sorted.bam', checkIfExists: true),
+                            file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.single_end.sorted.bam.bai', checkIfExists: true)
+                        ],
+                        [
+                            [ id:'map_denatured', principle:'MaP', single_end:true ],
+                            file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.single_end.sorted.bam', checkIfExists: true),
+                            file(params.modules_testdata_base_path + 'genomics/sarscov2/illumina/bam/test.single_end.sorted.bam.bai', checkIfExists: true)
+                        ]
+                    )
+                    input[1] = Channel.value([
+                        [ id:'ref' ],
+                        file(params.modules_testdata_base_path + 'genomics/sarscov2/genome/genome.fasta', checkIfExists: true)
+                    ])
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                module_args = '-sm 3 -nm 3 -mc 1'
+            }
+            process {
+                """
+                input[0] = RNAFRAMEWORK_RFCOUNT.out.rc
+                    .collect { _meta, rc -> rc }
+                    .map { rcs -> [
+                        [ id:'sarscov2', principle:'MaP' ],
+                        rcs.find { rc -> rc.name == 'map_treated.rc' },
+                        rcs.find { rc -> rc.name == 'map_untreated.rc' },
+                        rcs.find { rc -> rc.name == 'map_denatured.rc' },
+                        []
+                    ] }
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.factors.size() == 1 },
+                { assert !path(process.out.log[0][1]).text.contains('terminated abnormally') }
+            )
+        }
+    }
+
     test("rfnormfactor - stub") {
 
         options "-stub"
